@@ -341,13 +341,9 @@
                 </div>
                 <div>
                     <label>Origin of Product</label>
-                    <select id="origin">
+                    <select id="origin" onchange="loadHsCodeSettings()">
                         <option value="china">China</option>
                         <option value="indonesia">Indonesia</option>
-                        <option value="malaysia">Malaysia</option>
-                        <option value="usa">USA</option>
-                        <option value="europe">Europe</option>
-                        <option value="uae">UAE</option>
                         <option value="other">Other</option>
                     </select>
                 </div>
@@ -509,10 +505,12 @@
 
     async function saveAllSettingsToHsCode() {
         const hsCode = document.getElementById('hs_code').value;
+        const origin = document.getElementById('origin').value;
+        
         if (!hsCode) return alert('Select an HS Code first');
 
         const settings = {
-            origin: document.getElementById('origin').value,
+            origin: origin,
             incoterm: document.getElementById('incoterm').value,
             unit_price: parseFloat(document.getElementById('unit_price').value),
             freight_usd: parseFloat(document.getElementById('freight_usd').value),
@@ -534,8 +532,23 @@
         };
 
         try {
-            await hsCollection.doc(hsCode).set(settings, { merge: true });
-            showNotice("☁️ Settings synced to Cloud!", "#d1fae5", "#065f46");
+            // Create a nested structure: hs_code -> origins -> origin_specific_data
+            const originSettings = {};
+            originSettings[origin] = settings;
+            
+            await hsCollection.doc(hsCode).set({
+                description: document.querySelector(`#hs_code option[value="${hsCode}"]`)?.textContent?.split(' - ')[1] || '',
+                origins: firebase.firestore.FieldValue.arrayUnion(origin),
+                [`origin_${origin}`]: settings,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            
+            showNotice(`✅ Settings saved for ${hsCode} - ${origin.toUpperCase()}`, "#d1fae5", "#065f46");
+            
+            // Update localStorage with the current HS Code
+            localStorage.setItem('lastHsCode', hsCode);
+            localStorage.setItem(`lastOrigin_${hsCode}`, origin);
+            
         } catch (e) {
             alert("Sync Failed: " + e.message);
         }
@@ -543,31 +556,88 @@
 
     async function loadHsCodeSettings() {
         const hsCode = document.getElementById('hs_code').value;
+        const origin = document.getElementById('origin').value;
+        
         if (!hsCode) return;
         
-        localStorage.setItem('lastHsCode', hsCode);
-        const doc = await hsCollection.doc(hsCode).get();
-        if (!doc.exists) return;
-        
-        const data = doc.data();
+        try {
+            localStorage.setItem('lastHsCode', hsCode);
+            localStorage.setItem(`lastOrigin_${hsCode}`, origin);
+            
+            const doc = await hsCollection.doc(hsCode).get();
+            if (!doc.exists) {
+                // No saved data for this HS Code, load defaults
+                resetToDefaultsForOrigin(origin);
+                return;
+            }
+            
+            const data = doc.data();
+            
+            // Check if we have settings for this specific origin
+            const originKey = `origin_${origin}`;
+            
+            if (data[originKey]) {
+                // Load origin-specific settings
+                const originData = data[originKey];
+                
+                // Map cloud data back to input fields
+                Object.keys(DEFAULT_VALUES).forEach(key => {
+                    const el = document.getElementById(key);
+                    if (el && originData[key] !== undefined) {
+                        el.value = originData[key];
+                    }
+                });
+                
+                // Update the origin dropdown to match loaded data
+                if (originData.origin) {
+                    document.getElementById('origin').value = originData.origin;
+                }
+                
+                showNotice(`✅ Loaded ${hsCode} - ${origin.toUpperCase()} settings`, "#dbeafe", "#1e40af");
+            } else {
+                // No settings for this origin, load defaults
+                resetToDefaultsForOrigin(origin);
+                showNotice(`⚠️ No saved settings for ${origin.toUpperCase()}, using defaults`, "#fef3c7", "#92400e");
+            }
+            
+            handleIncotermChange();
+            calculate();
+            
+        } catch (e) {
+            console.error("Load Error:", e);
+            resetToDefaultsForOrigin(origin);
+        }
+    }
 
-        // Map cloud data back to input fields
+    function resetToDefaultsForOrigin(origin) {
+        // Reset to default values
         Object.keys(DEFAULT_VALUES).forEach(key => {
             const el = document.getElementById(key);
-            if (el && data[key] !== undefined) {
-                el.value = data[key];
+            if (el) {
+                el.value = DEFAULT_VALUES[key];
             }
         });
-
+        
+        // Set the origin
+        document.getElementById('origin').value = origin;
         handleIncotermChange();
         calculate();
     }
 
     async function deleteCurrentHsCode() {
         const code = document.getElementById('hs_code').value;
-        if (!code || !confirm(`Delete ${code} from Cloud?`)) return;
+        if (!code || !confirm(`Delete ${code} from Cloud? This will delete ALL origin settings for this HS Code.`)) return;
+        
         await hsCollection.doc(code).delete();
         loadHsCodes();
+        
+        // Clear localStorage for this HS Code
+        localStorage.removeItem('lastHsCode');
+        for (let key in localStorage) {
+            if (key.startsWith(`lastOrigin_${code}`)) {
+                localStorage.removeItem(key);
+            }
+        }
     }
 
     // --- 3. UI & CALCULATION LOGIC ---
@@ -657,7 +727,19 @@
     function copyFinalCost() {
         const val = document.getElementById('finalCostValue').textContent.split(' ')[1];
         navigator.clipboard.writeText(val);
-        showNotice("Copied to Clipboard! ✓", "#059669", "#fff");
+        
+        // Show copy notification
+        const notification = document.getElementById('copyNotification');
+        notification.style.display = 'block';
+        setTimeout(() => notification.style.display = 'none', 2000);
+    }
+
+    function resetToDefaults() {
+        if (confirm('Reset all fields to default values? This will not delete saved cloud data.')) {
+            const currentOrigin = document.getElementById('origin').value;
+            resetToDefaultsForOrigin(currentOrigin);
+            showNotice("🔄 Reset to defaults", "#fef3c7", "#92400e");
+        }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -665,6 +747,18 @@
         document.getElementById('summary-section').classList.add('collapsed');
         document.getElementById('tax-section').classList.add('collapsed');
         document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', calculate));
+        
+        // Load last used origin for the current HS Code if available
+        const hsSelect = document.getElementById('hs_code');
+        hsSelect.addEventListener('change', function() {
+            const hsCode = this.value;
+            if (hsCode) {
+                const lastOrigin = localStorage.getItem(`lastOrigin_${hsCode}`);
+                if (lastOrigin) {
+                    document.getElementById('origin').value = lastOrigin;
+                }
+            }
+        });
     });
 </script>
 </body>
