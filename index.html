@@ -344,6 +344,10 @@
                     <select id="origin" onchange="loadHsCodeSettings()">
                         <option value="china">China</option>
                         <option value="indonesia">Indonesia</option>
+                        <option value="malaysia">Malaysia</option>
+                        <option value="usa">USA</option>
+                        <option value="europe">Europe</option>
+                        <option value="uae">UAE</option>
                         <option value="other">Other</option>
                     </select>
                 </div>
@@ -392,6 +396,8 @@
                 <div><label>AST (%)</label><input type="number" id="rate_ast" value="3" oninput="calculate()"></div>
                 <div><label>Income Tax (%)</label><input type="number" id="rate_it" value="12" oninput="calculate()"></div>
                 <div><label>Sindh Cess (%)</label><input type="number" id="rate_cess" value="1.85" step="0.01" oninput="calculate()"></div>
+                <!-- Landing Charges Field Added -->
+                <div><label>Landing Charges (%)</label><input type="number" id="rate_landing" value="1" step="0.01" oninput="calculate()"></div>
             </div>
         </div>
     </div>
@@ -413,6 +419,8 @@
                 <tr><td>Sales Tax (GST + AST)</td><td id="out_st">0</td></tr>
                 <tr><td>Income Tax (WHT)</td><td id="out_it">0</td></tr>
                 <tr><td>Port/Cess/Local</td><td id="out_local">0</td></tr>
+                <!-- Landing Charges Row Added -->
+                <tr><td>Landing Charges (1%)</td><td id="out_landing">0</td></tr>
                 <tr class="total-row"><td>Landed Cost / KG</td><td id="out_kg">Rs. 0.00</td></tr>
             </table>
             
@@ -460,7 +468,7 @@
         insurance_usd: 200, itp_val: 0.75, ex_rate: 282, qty: 20, 
         port_pkr: 85000, truck_pkr: 12, rate_cd: 15, rate_acd: 2, 
         rate_rd: 10, rate_add: 0, rate_st: 18, rate_ast: 3, 
-        rate_it: 12, rate_cess: 1.85
+        rate_it: 12, rate_cess: 1.85, rate_landing: 1  // Landing charges added with 1% default
     };
 
     // --- 2. CLOUD DATA FUNCTIONS ---
@@ -528,6 +536,7 @@
             rate_ast: parseFloat(document.getElementById('rate_ast').value),
             rate_it: parseFloat(document.getElementById('rate_it').value),
             rate_cess: parseFloat(document.getElementById('rate_cess').value),
+            rate_landing: parseFloat(document.getElementById('rate_landing').value), // Landing charges added
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
         };
 
@@ -694,10 +703,13 @@
         const ast = stBase * (parseFloat(document.getElementById('rate_ast').value)/100);
         const it = (stBase + gst + ast) * (parseFloat(document.getElementById('rate_it').value)/100);
         const cess = assessedValuePkr * (parseFloat(document.getElementById('rate_cess').value)/100);
+        // Landing charges calculation added
+        const landing = assessedValuePkr * (parseFloat(document.getElementById('rate_landing').value)/100);
         const port = parseFloat(document.getElementById('port_pkr').value) || 0;
         const truck = (qty * 1000) * (parseFloat(document.getElementById('truck_pkr').value) || 0);
 
-        const grandTotal = actualCostPkr + cd + acd + rd + add + gst + ast + it + cess + port + truck;
+        // Landing charges added to grand total
+        const grandTotal = actualCostPkr + cd + acd + rd + add + gst + ast + it + cess + landing + port + truck;
         const perKg = grandTotal / (qty * 1000);
 
         document.getElementById('out_inv_usd').innerText = "$" + invUsd.toLocaleString();
@@ -710,6 +722,8 @@
         document.getElementById('out_st').innerText = Math.round(gst + ast).toLocaleString();
         document.getElementById('out_it').innerText = Math.round(it).toLocaleString();
         document.getElementById('out_local').innerText = Math.round(cess + port).toLocaleString();
+        // Landing charges output added
+        document.getElementById('out_landing').innerText = Math.round(landing).toLocaleString();
         document.getElementById('out_kg').innerText = "Rs. " + perKg.toFixed(2);
         document.getElementById('finalCostValue').textContent = "Rs. " + perKg.toFixed(2) + " /kg";
     }
