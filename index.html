@@ -440,420 +440,180 @@
 </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <script>
-    // Default values for when no HS Code settings exist
-    const DEFAULT_VALUES = {
-        origin: 'china',
-        incoterm: 'cif',
-        unit_price: 750,
-        freight_usd: 1200,
-        insurance_usd: 200,
-        itp_val: 0.75,
-        ex_rate: 282,
-        qty: 20,
-        port_pkr: 85000,
-        truck_pkr: 12,
-        rate_cd: 15,
-        rate_acd: 2,
-        rate_rd: 10,
-        rate_add: 0,
-        rate_st: 18,
-        rate_ast: 3,
-        rate_it: 12,
-        rate_cess: 1.85
+    // --- 1. YOUR SPECIFIC FIREBASE CONFIGURATION ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyAqpYFx4SnulY3ctPPqsepymUz4qUsJUG0",
+        authDomain: "import-calculator-2a301.firebaseapp.com",
+        projectId: "import-calculator-2a301",
+        storageBucket: "import-calculator-2a301.firebasestorage.app",
+        messagingSenderId: "485001969088",
+        appId: "1:485001969088:web:518b99e62a8840bb699c25"
     };
 
-    // Mobile toggle functionality - FIXED VERSION
-    function toggleSection(sectionId, toggleElement) {
-    const section = document.getElementById(sectionId);
-    
-    if (section.style.maxHeight === '0px' || section.classList.contains('collapsed')) {
-        // Expand the section
-        section.classList.remove('collapsed');
-        section.style.maxHeight = section.scrollHeight + 'px';
-        section.style.opacity = '1';
-        toggleElement.classList.add('active');
-        toggleElement.querySelector('.toggle-icon').textContent = '▼';
-    } else {
-        // Collapse the section
-        section.classList.add('collapsed');
-        section.style.maxHeight = '0';
-        section.style.opacity = '0';
-        toggleElement.classList.remove('active');
-        toggleElement.querySelector('.toggle-icon').textContent = '▶';
-    }
-}
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const hsCollection = db.collection('hs_codes');
 
-    // Initialize all sections on load
-function initializeSections() {
-    // Collapse summary-section by default
-    const summarySection = document.getElementById('summary-section');
-    const summaryToggle = document.querySelector('[onclick*="summary-section"]');
-    if (summarySection && summaryToggle) {
-        summarySection.classList.add('collapsed');
-        summaryToggle.classList.remove('active');
-        summaryToggle.querySelector('.toggle-icon').textContent = '▶';
-    }
-    
-    // Collapse tax-section by default
-    const taxSection = document.getElementById('tax-section');
-    const taxToggle = document.querySelector('[onclick*="tax-section"]');
-    if (taxSection && taxToggle) {
-        taxSection.classList.add('collapsed');
-        taxToggle.classList.remove('active');
-        taxToggle.querySelector('.toggle-icon').textContent = '▶';
-    }
-    
-    // Only commercial-section should be open by default
-    const commercialSection = document.getElementById('commercial-section');
-    const commercialToggle = document.querySelector('[onclick*="commercial-section"]');
-    if (commercialSection && commercialToggle) {
-        commercialSection.classList.remove('collapsed');
-        commercialToggle.classList.add('active');
-        commercialToggle.querySelector('.toggle-icon').textContent = '▼';
-    }
-}
-    // Copy final cost to clipboard
-    function copyFinalCost() {
-        const costText = document.getElementById('finalCostValue').textContent;
-        const finalCost = costText.replace(' /kg', '');
-        
-        navigator.clipboard.writeText(finalCost).then(() => {
-            const notification = document.getElementById('copyNotification');
-            notification.style.display = 'block';
-            notification.style.background = '#059669';
-            notification.textContent = 'Copied to clipboard! ✓';
-            
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 2000);
-        }).catch(err => {
-            const notification = document.getElementById('copyNotification');
-            notification.style.display = 'block';
-            notification.style.background = '#dc2626';
-            notification.textContent = 'Failed to copy!';
-            
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 2000);
-        });
-    }
+    const DEFAULT_VALUES = {
+        origin: 'china', incoterm: 'cif', unit_price: 750, freight_usd: 1200, 
+        insurance_usd: 200, itp_val: 0.75, ex_rate: 282, qty: 20, 
+        port_pkr: 85000, truck_pkr: 12, rate_cd: 15, rate_acd: 2, 
+        rate_rd: 10, rate_add: 0, rate_st: 18, rate_ast: 3, 
+        rate_it: 12, rate_cess: 1.85
+    };
 
-    // Initialize localStorage with empty HS codes array
-    function initializeHsCodes() {
-        if (!localStorage.getItem('hsCodes')) {
-            localStorage.setItem('hsCodes', JSON.stringify([]));
-        }
-        
-        if (!localStorage.getItem('hsCodeSettings')) {
-            localStorage.setItem('hsCodeSettings', JSON.stringify({}));
-        }
-    }
+    // --- 2. CLOUD DATA FUNCTIONS ---
 
-    // Load HS codes into dropdown
-    function loadHsCodes() {
-        const hsCodes = JSON.parse(localStorage.getItem('hsCodes')) || [];
+    async function loadHsCodes() {
         const select = document.getElementById('hs_code');
-        select.innerHTML = '';
+        select.innerHTML = '<option disabled selected>Connecting to cloud...</option>';
         
-        // Add a default placeholder option
-        const placeholderOption = document.createElement('option');
-        placeholderOption.value = '';
-        placeholderOption.textContent = '-- Select or Add HS Code --';
-        placeholderOption.disabled = true;
-        placeholderOption.selected = true;
-        select.appendChild(placeholderOption);
-        
-        // Add user's HS codes
-        hsCodes.forEach(hs => {
-            const option = document.createElement('option');
-            option.value = hs.code;
-            option.textContent = `${hs.code} - ${hs.description}`;
-            select.appendChild(option);
-        });
-        
-        // Load the last used HS code
-        const lastHsCode = localStorage.getItem('lastHsCode');
-        if (lastHsCode && hsCodes.some(hs => hs.code === lastHsCode)) {
-            select.value = lastHsCode;
-            loadHsCodeSettings();
-        }
-    }
-
-    // Add new HS code
-    function addHsCode() {
-        const codeInput = document.getElementById('new_hs_code');
-        const descInput = document.getElementById('new_hs_description');
-        
-        const code = codeInput.value.trim();
-        const description = descInput.value.trim();
-        
-        if (!code || !description) {
-            alert('Please enter both HS Code and Description');
-            return;
-        }
-        
-        const hsCodes = JSON.parse(localStorage.getItem('hsCodes')) || [];
-        
-        // Check if code already exists
-        if (hsCodes.some(hs => hs.code === code)) {
-            alert('HS Code already exists!');
-            return;
-        }
-        
-        hsCodes.push({ code, description });
-        localStorage.setItem('hsCodes', JSON.stringify(hsCodes));
-        
-        // Clear inputs
-        codeInput.value = '';
-        descInput.value = '';
-        
-        // Reload dropdown
-        loadHsCodes();
-        
-        // Select the new HS code
-        document.getElementById('hs_code').value = code;
-        
-        // Show success message
-        setTimeout(() => {
-            const notice = document.getElementById('save-notice');
-            notice.style.display = 'block';
-            notice.textContent = `HS Code ${code} added!`;
-            notice.style.background = '#d1fae5';
-            notice.style.color = '#065f46';
-            setTimeout(() => {
-                notice.style.display = 'none';
-            }, 3000);
-        }, 100);
-    }
-
-    // Delete current HS code
-    function deleteCurrentHsCode() {
-        const select = document.getElementById('hs_code');
-        const currentCode = select.value;
-        
-        if (!currentCode) {
-            alert('Please select an HS Code to delete');
-            return;
-        }
-        
-        if (!confirm(`Delete HS Code ${currentCode}? This cannot be undone.`)) return;
-        
-        let hsCodes = JSON.parse(localStorage.getItem('hsCodes')) || [];
-        hsCodes = hsCodes.filter(hs => hs.code !== currentCode);
-        localStorage.setItem('hsCodes', JSON.stringify(hsCodes));
-        
-        // Also remove saved settings for this HS code
-        const settings = JSON.parse(localStorage.getItem('hsCodeSettings')) || {};
-        delete settings[currentCode];
-        localStorage.setItem('hsCodeSettings', JSON.stringify(settings));
-        
-        // Clear last used HS code if it's the one being deleted
-        if (localStorage.getItem('lastHsCode') === currentCode) {
-            localStorage.removeItem('lastHsCode');
-        }
-        
-        loadHsCodes();
-        
-        // Show confirmation
-        const notice = document.getElementById('save-notice');
-        notice.style.display = 'block';
-        notice.textContent = `HS Code ${currentCode} deleted!`;
-        notice.style.background = '#fee2e2';
-        notice.style.color = '#991b1b';
-        setTimeout(() => {
-            notice.style.display = 'none';
-        }, 3000);
-    }
-
-    // Load settings for selected HS code
-    function loadHsCodeSettings() {
-        const hsCode = document.getElementById('hs_code').value;
-        if (!hsCode) {
-            // If no HS code selected, use defaults
-            document.getElementById('origin').value = DEFAULT_VALUES.origin;
-            document.getElementById('incoterm').value = DEFAULT_VALUES.incoterm;
-            document.getElementById('unit_price').value = DEFAULT_VALUES.unit_price;
-            document.getElementById('freight_usd').value = DEFAULT_VALUES.freight_usd;
-            document.getElementById('insurance_usd').value = DEFAULT_VALUES.insurance_usd;
-            document.getElementById('itp_val').value = DEFAULT_VALUES.itp_val;
-            document.getElementById('ex_rate').value = DEFAULT_VALUES.ex_rate;
-            document.getElementById('qty').value = DEFAULT_VALUES.qty;
-            document.getElementById('port_pkr').value = DEFAULT_VALUES.port_pkr;
-            document.getElementById('truck_pkr').value = DEFAULT_VALUES.truck_pkr;
-            document.getElementById('rate_cd').value = DEFAULT_VALUES.rate_cd;
-            document.getElementById('rate_acd').value = DEFAULT_VALUES.rate_acd;
-            document.getElementById('rate_rd').value = DEFAULT_VALUES.rate_rd;
-            document.getElementById('rate_add').value = DEFAULT_VALUES.rate_add;
-            document.getElementById('rate_st').value = DEFAULT_VALUES.rate_st;
-            document.getElementById('rate_ast').value = DEFAULT_VALUES.rate_ast;
-            document.getElementById('rate_it').value = DEFAULT_VALUES.rate_it;
-            document.getElementById('rate_cess').value = DEFAULT_VALUES.rate_cess;
+        try {
+            const snapshot = await hsCollection.get();
+            select.innerHTML = '<option value="" disabled selected>-- Select HS Code --</option>';
             
-            handleIncotermChange();
-            calculate();
-            return;
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const option = document.createElement('option');
+                option.value = doc.id;
+                option.textContent = `${doc.id} - ${data.description || ''}`;
+                select.appendChild(option);
+            });
+
+            const lastHs = localStorage.getItem('lastHsCode');
+            if (lastHs) {
+                select.value = lastHs;
+                loadHsCodeSettings();
+            }
+        } catch (e) {
+            console.error("Cloud Error:", e);
         }
-        
-        // Save last used HS code
-        localStorage.setItem('lastHsCode', hsCode);
-        
-        const settings = JSON.parse(localStorage.getItem('hsCodeSettings')) || {};
-        const hsSettings = settings[hsCode] || {};
-        
-        // Apply saved settings or use defaults
-        document.getElementById('origin').value = hsSettings.origin || DEFAULT_VALUES.origin;
-        document.getElementById('incoterm').value = hsSettings.incoterm || DEFAULT_VALUES.incoterm;
-        document.getElementById('unit_price').value = hsSettings.unit_price || DEFAULT_VALUES.unit_price;
-        document.getElementById('freight_usd').value = hsSettings.freight_usd || DEFAULT_VALUES.freight_usd;
-        document.getElementById('insurance_usd').value = hsSettings.insurance_usd || DEFAULT_VALUES.insurance_usd;
-        document.getElementById('itp_val').value = hsSettings.itp_val || DEFAULT_VALUES.itp_val;
-        document.getElementById('ex_rate').value = hsSettings.ex_rate || DEFAULT_VALUES.ex_rate;
-        document.getElementById('qty').value = hsSettings.qty || DEFAULT_VALUES.qty;
-        document.getElementById('port_pkr').value = hsSettings.port_pkr || DEFAULT_VALUES.port_pkr;
-        document.getElementById('truck_pkr').value = hsSettings.truck_pkr || DEFAULT_VALUES.truck_pkr;
-        document.getElementById('rate_cd').value = hsSettings.rate_cd || DEFAULT_VALUES.rate_cd;
-        document.getElementById('rate_acd').value = hsSettings.rate_acd || DEFAULT_VALUES.rate_acd;
-        document.getElementById('rate_rd').value = hsSettings.rate_rd || DEFAULT_VALUES.rate_rd;
-        document.getElementById('rate_add').value = hsSettings.rate_add || DEFAULT_VALUES.rate_add;
-        document.getElementById('rate_st').value = hsSettings.rate_st || DEFAULT_VALUES.rate_st;
-        document.getElementById('rate_ast').value = hsSettings.rate_ast || DEFAULT_VALUES.rate_ast;
-        document.getElementById('rate_it').value = hsSettings.rate_it || DEFAULT_VALUES.rate_it;
-        document.getElementById('rate_cess').value = hsSettings.rate_cess || DEFAULT_VALUES.rate_cess;
-        
-        // Trigger incoterm change to show/hide correct fields
-        handleIncotermChange();
-        calculate();
     }
 
-    // Save ALL settings to current HS code
-    function saveAllSettingsToHsCode() {
+    async function addHsCode() {
+        const code = document.getElementById('new_hs_code').value.trim();
+        const desc = document.getElementById('new_hs_description').value.trim();
+        if (!code || !desc) return alert('Enter HS Code and Description');
+
+        await hsCollection.doc(code).set({ description: desc }, { merge: true });
+        document.getElementById('new_hs_code').value = '';
+        document.getElementById('new_hs_description').value = '';
+        loadHsCodes();
+        showNotice(`✅ ${code} added to Cloud!`);
+    }
+
+    async function saveAllSettingsToHsCode() {
         const hsCode = document.getElementById('hs_code').value;
-        if (!hsCode || hsCode === '') {
-            alert('Please select or add an HS Code first');
-            return;
-        }
-        
-        const settings = JSON.parse(localStorage.getItem('hsCodeSettings')) || {};
-        
-        // Save current values
-        settings[hsCode] = {
+        if (!hsCode) return alert('Select an HS Code first');
+
+        const settings = {
             origin: document.getElementById('origin').value,
             incoterm: document.getElementById('incoterm').value,
-            unit_price: parseFloat(document.getElementById('unit_price').value) || DEFAULT_VALUES.unit_price,
-            freight_usd: parseFloat(document.getElementById('freight_usd').value) || DEFAULT_VALUES.freight_usd,
-            insurance_usd: parseFloat(document.getElementById('insurance_usd').value) || DEFAULT_VALUES.insurance_usd,
-            itp_val: parseFloat(document.getElementById('itp_val').value) || DEFAULT_VALUES.itp_val,
-            ex_rate: parseFloat(document.getElementById('ex_rate').value) || DEFAULT_VALUES.ex_rate,
-            qty: parseFloat(document.getElementById('qty').value) || DEFAULT_VALUES.qty,
-            port_pkr: parseFloat(document.getElementById('port_pkr').value) || DEFAULT_VALUES.port_pkr,
-            truck_pkr: parseFloat(document.getElementById('truck_pkr').value) || DEFAULT_VALUES.truck_pkr,
-            rate_cd: parseFloat(document.getElementById('rate_cd').value) || DEFAULT_VALUES.rate_cd,
-            rate_acd: parseFloat(document.getElementById('rate_acd').value) || DEFAULT_VALUES.rate_acd,
-            rate_rd: parseFloat(document.getElementById('rate_rd').value) || DEFAULT_VALUES.rate_rd,
-            rate_add: parseFloat(document.getElementById('rate_add').value) || DEFAULT_VALUES.rate_add,
-            rate_st: parseFloat(document.getElementById('rate_st').value) || DEFAULT_VALUES.rate_st,
-            rate_ast: parseFloat(document.getElementById('rate_ast').value) || DEFAULT_VALUES.rate_ast,
-            rate_it: parseFloat(document.getElementById('rate_it').value) || DEFAULT_VALUES.rate_it,
-            rate_cess: parseFloat(document.getElementById('rate_cess').value) || DEFAULT_VALUES.rate_cess
+            unit_price: parseFloat(document.getElementById('unit_price').value),
+            freight_usd: parseFloat(document.getElementById('freight_usd').value),
+            insurance_usd: parseFloat(document.getElementById('insurance_usd').value),
+            itp_val: parseFloat(document.getElementById('itp_val').value),
+            ex_rate: parseFloat(document.getElementById('ex_rate').value),
+            qty: parseFloat(document.getElementById('qty').value),
+            port_pkr: parseFloat(document.getElementById('port_pkr').value),
+            truck_pkr: parseFloat(document.getElementById('truck_pkr').value),
+            rate_cd: parseFloat(document.getElementById('rate_cd').value),
+            rate_acd: parseFloat(document.getElementById('rate_acd').value),
+            rate_rd: parseFloat(document.getElementById('rate_rd').value),
+            rate_add: parseFloat(document.getElementById('rate_add').value),
+            rate_st: parseFloat(document.getElementById('rate_st').value),
+            rate_ast: parseFloat(document.getElementById('rate_ast').value),
+            rate_it: parseFloat(document.getElementById('rate_it').value),
+            rate_cess: parseFloat(document.getElementById('rate_cess').value),
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
         };
-        
-        localStorage.setItem('hsCodeSettings', JSON.stringify(settings));
-        
-        // Show save confirmation
-        const notice = document.getElementById('save-notice');
-        notice.style.display = 'block';
-        notice.textContent = `✅ All settings saved for HS Code: ${hsCode}`;
-        notice.style.background = '#d1fae5';
-        notice.style.color = '#065f46';
-        setTimeout(() => {
-            notice.style.display = 'none';
-        }, 3000);
+
+        try {
+            await hsCollection.doc(hsCode).set(settings, { merge: true });
+            showNotice("☁️ Settings synced to Cloud!", "#d1fae5", "#065f46");
+        } catch (e) {
+            alert("Sync Failed: " + e.message);
+        }
     }
 
-    function resetToDefaults() {
-        if (!confirm('Reset all fields to default values?')) return;
+    async function loadHsCodeSettings() {
+        const hsCode = document.getElementById('hs_code').value;
+        if (!hsCode) return;
         
-        document.getElementById('origin').value = DEFAULT_VALUES.origin;
-        document.getElementById('incoterm').value = DEFAULT_VALUES.incoterm;
-        document.getElementById('unit_price').value = DEFAULT_VALUES.unit_price;
-        document.getElementById('freight_usd').value = DEFAULT_VALUES.freight_usd;
-        document.getElementById('insurance_usd').value = DEFAULT_VALUES.insurance_usd;
-        document.getElementById('itp_val').value = DEFAULT_VALUES.itp_val;
-        document.getElementById('ex_rate').value = DEFAULT_VALUES.ex_rate;
-        document.getElementById('qty').value = DEFAULT_VALUES.qty;
-        document.getElementById('port_pkr').value = DEFAULT_VALUES.port_pkr;
-        document.getElementById('truck_pkr').value = DEFAULT_VALUES.truck_pkr;
-        document.getElementById('rate_cd').value = DEFAULT_VALUES.rate_cd;
-        document.getElementById('rate_acd').value = DEFAULT_VALUES.rate_acd;
-        document.getElementById('rate_rd').value = DEFAULT_VALUES.rate_rd;
-        document.getElementById('rate_add').value = DEFAULT_VALUES.rate_add;
-        document.getElementById('rate_st').value = DEFAULT_VALUES.rate_st;
-        document.getElementById('rate_ast').value = DEFAULT_VALUES.rate_ast;
-        document.getElementById('rate_it').value = DEFAULT_VALUES.rate_it;
-        document.getElementById('rate_cess').value = DEFAULT_VALUES.rate_cess;
+        localStorage.setItem('lastHsCode', hsCode);
+        const doc = await hsCollection.doc(hsCode).get();
+        if (!doc.exists) return;
         
+        const data = doc.data();
+
+        // Map cloud data back to input fields
+        Object.keys(DEFAULT_VALUES).forEach(key => {
+            const el = document.getElementById(key);
+            if (el && data[key] !== undefined) {
+                el.value = data[key];
+            }
+        });
+
         handleIncotermChange();
         calculate();
+    }
+
+    async function deleteCurrentHsCode() {
+        const code = document.getElementById('hs_code').value;
+        if (!code || !confirm(`Delete ${code} from Cloud?`)) return;
+        await hsCollection.doc(code).delete();
+        loadHsCodes();
+    }
+
+    // --- 3. UI & CALCULATION LOGIC ---
+
+    function toggleSection(sectionId, toggleElement) {
+        const section = document.getElementById(sectionId);
+        const isCollapsed = section.classList.contains('collapsed');
         
-        // Show confirmation
-        const notice = document.getElementById('save-notice');
-        notice.style.display = 'block';
-        notice.textContent = '🔄 All fields reset to defaults!';
-        notice.style.background = '#fef3c7';
-        notice.style.color = '#92400e';
-        setTimeout(() => {
-            notice.style.display = 'none';
-        }, 3000);
+        section.classList.toggle('collapsed');
+        toggleElement.classList.toggle('active');
+        toggleElement.querySelector('.toggle-icon').textContent = isCollapsed ? '▼' : '▶';
+        
+        if (isCollapsed) {
+            section.style.maxHeight = section.scrollHeight + "px";
+            section.style.opacity = "1";
+        } else {
+            section.style.maxHeight = "0";
+            section.style.opacity = "0";
+        }
     }
 
     function handleIncotermChange() {
         const term = document.getElementById('incoterm').value;
-        
-        // Show freight field only for FOB (buyer pays freight)
         document.getElementById('box_freight').className = (term === 'fob') ? '' : 'hidden';
-        
-        // Show insurance field for FOB and C&F (buyer pays insurance)
         document.getElementById('box_insurance').className = (term === 'fob' || term === 'cnf') ? '' : 'hidden';
-        
         calculate();
     }
 
     function calculate() {
         const term = document.getElementById('incoterm').value;
-        const origin = document.getElementById('origin').value;
         const unitPrice = parseFloat(document.getElementById('unit_price').value) || 0;
         const qty = parseFloat(document.getElementById('qty').value) || 0;
         const exRate = parseFloat(document.getElementById('ex_rate').value) || 0;
-        const itpVal = (parseFloat(document.getElementById('itp_val').value) || 0);
+        const itpVal = parseFloat(document.getElementById('itp_val').value) || 0;
 
         let invUsd = unitPrice * qty;
         let freightUsd = (term === 'fob') ? parseFloat(document.getElementById('freight_usd').value) || 0 : 0;
         let insuranceUsd = (term === 'fob' || term === 'cnf') ? parseFloat(document.getElementById('insurance_usd').value) || 0 : 0;
         
-        // For CIF, insurance is calculated as 1% of assessment
         if (term === 'cif') {
-            let cnfAssessmentUsd = Math.max(unitPrice, itpVal) * qty;
-            insuranceUsd = cnfAssessmentUsd * 0.01; // Mandatory 1%
+            insuranceUsd = Math.max(unitPrice, itpVal) * qty * 0.01;
         }
 
-        // Cost logic for Assessment vs Actual Payment
         let actualCostPkr = (invUsd + freightUsd + insuranceUsd) * exRate;
-        
-        // For C&F and CIF, freight is included in unit price, so we need to estimate it for assessment
-        // This is a simplification - in real scenario, C&F price already includes freight
-        let freightForAssessment = 0;
-        if (term === 'cnf' || term === 'cif') {
-            // Estimate freight as 0 since it's already included in C&F/CIF price
-            freightForAssessment = 0;
-        } else if (term === 'fob') {
-            freightForAssessment = freightUsd;
-        }
-        
-        let cnfAssessmentUsd = Math.max(unitPrice, itpVal) * qty + freightForAssessment + insuranceUsd;
-        let assessedValuePkr = cnfAssessmentUsd * exRate;
+        let assessedValuePkr = (Math.max(unitPrice, itpVal) * qty + (term === 'fob' ? freightUsd : 0) + insuranceUsd) * exRate;
 
-        // Taxes
         const cd = assessedValuePkr * (parseFloat(document.getElementById('rate_cd').value)/100);
         const acd = assessedValuePkr * (parseFloat(document.getElementById('rate_acd').value)/100);
         const rd = assessedValuePkr * (parseFloat(document.getElementById('rate_rd').value)/100);
@@ -863,7 +623,6 @@ function initializeSections() {
         const gst = stBase * (parseFloat(document.getElementById('rate_st').value)/100);
         const ast = stBase * (parseFloat(document.getElementById('rate_ast').value)/100);
         const it = (stBase + gst + ast) * (parseFloat(document.getElementById('rate_it').value)/100);
-
         const cess = assessedValuePkr * (parseFloat(document.getElementById('rate_cess').value)/100);
         const port = parseFloat(document.getElementById('port_pkr').value) || 0;
         const truck = (qty * 1000) * (parseFloat(document.getElementById('truck_pkr').value) || 0);
@@ -882,23 +641,30 @@ function initializeSections() {
         document.getElementById('out_it').innerText = Math.round(it).toLocaleString();
         document.getElementById('out_local').innerText = Math.round(cess + port).toLocaleString();
         document.getElementById('out_kg').innerText = "Rs. " + perKg.toFixed(2);
-        
-        // Update the final cost banner
         document.getElementById('finalCostValue').textContent = "Rs. " + perKg.toFixed(2) + " /kg";
     }
 
-    // Initialize on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        initializeHsCodes();
+    function showNotice(msg, bg="#dbeafe", color="#1e40af") {
+        const notice = document.getElementById('save-notice');
+        if (!notice) return;
+        notice.style.display = 'block';
+        notice.textContent = msg;
+        notice.style.background = bg;
+        notice.style.color = color;
+        setTimeout(() => notice.style.display = 'none', 3000);
+    }
+
+    function copyFinalCost() {
+        const val = document.getElementById('finalCostValue').textContent.split(' ')[1];
+        navigator.clipboard.writeText(val);
+        showNotice("Copied to Clipboard! ✓", "#059669", "#fff");
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
         loadHsCodes();
-        initializeSections();
-        calculate();
-        
-        // Auto-calculate on any change
-        document.querySelectorAll('input, select').forEach(element => {
-            element.addEventListener('change', calculate);
-            element.addEventListener('input', calculate);
-        });
+        document.getElementById('summary-section').classList.add('collapsed');
+        document.getElementById('tax-section').classList.add('collapsed');
+        document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', calculate));
     });
 </script>
 </body>
