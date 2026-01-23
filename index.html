@@ -327,11 +327,11 @@
 <body>
 
 <div class="final-cost-banner" onclick="copyFinalCost()" id="finalCostBanner">
-    <div class="cost-value" id="finalCostValue">Rs. 0.00 /kg</div>
+    <div class="cost-value" id="finalCostValue">Rs. 0.00 /kg LHR</div>
 </div>
 
 <div class="final-cost-banner red-banner" onclick="copyNetCost()" id="netCostBanner">
-    <div class="cost-value" id="netCostValue">Rs. 0.00 /kg</div>
+    <div class="cost-value" id="netCostValue">Rs. 0.00 /kg KHI</div>
 </div>
 
 <div class="copy-notification" id="copyNotification">
@@ -773,10 +773,10 @@
         document.getElementById('out_local').innerText = Math.round(cess + portTotal).toLocaleString();
         document.getElementById('out_landing').innerText = Math.round(landing).toLocaleString();
         document.getElementById('out_kg').innerText = "Rs. " + costPerKg.toFixed(2);
-        document.getElementById('finalCostValue').textContent = "Rs. " + costPerKg.toFixed(2) + " /kg";
+        document.getElementById('finalCostValue').textContent = "Rs. " + costPerKg.toFixed(2) + " /kg LHR";
 
 const netCostPerKg = costPerKg - truckPerKg;
-        document.getElementById('netCostValue').textContent = "Rs. " + netCostPerKg.toFixed(2) + " /kg";
+        document.getElementById('netCostValue').textContent = "Rs. " + netCostPerKg.toFixed(2) + " /kg KHI";
     }
 
     function showNotice(msg, bg="#dbeafe", color="#1e40af") {
