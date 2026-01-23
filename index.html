@@ -360,7 +360,7 @@
                 <div id="box_freight" class="hidden"><label>Sea Freight (USD Total)</label><input type="number" id="freight_usd" value="1200" oninput="calculate()"></div>
                 <div id="box_insurance" class="hidden"><label>Insurance (USD)</label><input type="number" id="insurance_usd" value="200" oninput="calculate()"></div>
                 
-                <div><label>ITP Value (USD/KG)</label><input type="number" id="itp_val" value="0.75" step="0.01" oninput="calculate()"></div>
+                <div><label>ITP Value (USD/Ton)</label><input type="number" id="itp_val" value="750" step="0.01" oninput="calculate()"></div>
                 <div><label>Ex. Rate (PKR)</label><input type="number" id="ex_rate" value="282" oninput="calculate()"></div>
                 <div><label>Quantity (Tons)</label><input type="number" id="qty" value="20" oninput="calculate()"></div>
             </div>
@@ -461,7 +461,7 @@
 
     const DEFAULT_VALUES = {
         origin: 'china', incoterm: 'cif', unit_price: 750, freight_usd: 1200, 
-        insurance_usd: 200, itp_val: 0.75, ex_rate: 282, qty: 20, 
+        insurance_usd: 200, itp_val: 750, ex_rate: 282, qty: 1, 
         port_pkr: 5, // Now this is FLAT rupees per kg to add (was per kg rate)
         truck_pkr: 12, rate_cd: 15, rate_acd: 2, 
         rate_rd: 10, rate_add: 0, rate_st: 18, rate_ast: 3, 
