@@ -358,7 +358,7 @@
                 <div><label>Unit Price (USD/Ton)</label><input type="number" id="unit_price" value="750" oninput="calculate()"></div>
                 
                 <div id="box_freight" class="hidden"><label>Sea Freight (USD Total)</label><input type="number" id="freight_usd" value="1200" oninput="calculate()"></div>
-                <div id="box_insurance" class="hidden"><label>Insurance (USD)</label><input type="number" id="insurance_usd" value="200" oninput="calculate()"></div>
+                <div id="box_insurance" class="hidden"><label>Insurance (%age)</label><input type="number" id="insurance_usd" value="0.15" oninput="calculate()"></div>
                 
                 <div><label>ITP Value (USD/Ton)</label><input type="number" id="itp_val" value="750" step="0.01" oninput="calculate()"></div>
                 <div><label>Ex. Rate (PKR)</label><input type="number" id="ex_rate" value="282" oninput="calculate()"></div>
@@ -461,7 +461,7 @@
 
     const DEFAULT_VALUES = {
         origin: 'china', incoterm: 'cif', unit_price: 750, freight_usd: 1200, 
-        insurance_usd: 200, itp_val: 750, ex_rate: 282, qty: 1, 
+        insurance_usd: 0.15, itp_val: 750, ex_rate: 282, qty: 1, 
         port_pkr: 5, // Now this is FLAT rupees per kg to add (was per kg rate)
         truck_pkr: 12, rate_cd: 15, rate_acd: 2, 
         rate_rd: 10, rate_add: 0, rate_st: 18, rate_ast: 3, 
@@ -519,7 +519,7 @@
             incoterm: document.getElementById('incoterm').value,
             unit_price: parseFloat(document.getElementById('unit_price').value),
             freight_usd: parseFloat(document.getElementById('freight_usd').value),
-            insurance_usd: parseFloat(document.getElementById('insurance_usd').value),
+            insurance_percent: parseFloat(document.getElementById('insurance_percent').value),
             itp_val: parseFloat(document.getElementById('itp_val').value),
             ex_rate: parseFloat(document.getElementById('ex_rate').value),
             qty: parseFloat(document.getElementById('qty').value),
@@ -681,7 +681,11 @@
 
         let invUsd = unitPrice * qty;
         let freightUsd = (term === 'fob') ? parseFloat(document.getElementById('freight_usd').value) || 0 : 0;
-        let insuranceUsd = (term === 'fob' || term === 'cnf') ? parseFloat(document.getElementById('insurance_usd').value) || 0 : 0;
+        let insuranceUsd = 0;
+if (term === 'fob' || term === 'cnf') {
+    let insurancePercent = parseFloat(document.getElementById('insurance_percent').value) || 0;
+    insuranceUsd = maxValuePerTon * qty * (insurancePercent / 100);
+}
         
         if (term === 'cif') {
             insuranceUsd = Math.max(unitPrice, itpVal) * qty * 0.01;
