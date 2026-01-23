@@ -96,7 +96,7 @@
             transform: translateX(-50%);
             background: linear-gradient(135deg, #059669, #10b981);
             color: white;
-            padding: 12px 20px;
+            padding: 6px 10px;
             border-radius: 8px;
             font-weight: bold;
             font-size: 16px;
@@ -219,13 +219,13 @@
             overflow: hidden;
         }
         .collapsed {
-    max-height: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow: hidden;
-    opacity: 0;
-    border: none !important;
-}
+            max-height: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: hidden;
+            opacity: 0;
+            border: none !important;
+        }
         .header-bar {
             background: var(--primary);
             color: white;
@@ -304,13 +304,34 @@
             color: #059669;
             font-size: 1rem;
         }
+        
+        /* RED BANNER STYLES - ADDED HERE */
+        .red-banner {
+            top: 70px !important;
+            background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3) !important;
+        }
+        .red-banner:hover {
+            background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+            box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4) !important;
+        }
+        /* Adjust positions */
+        .final-cost-banner {
+            top: 10px;
+        }
+        .red-banner {
+            top: 70px;
+        }
     </style>
 </head>
 <body>
 
 <div class="final-cost-banner" onclick="copyFinalCost()" id="finalCostBanner">
-    <div class="copy-icon">📋</div>
     <div class="cost-value" id="finalCostValue">Rs. 0.00 /kg</div>
+</div>
+
+<div class="final-cost-banner red-banner" onclick="copyNetCost()" id="netCostBanner">
+    <div class="cost-value" id="netCostValue">Rs. 0.00 /kg</div>
 </div>
 
 <div class="copy-notification" id="copyNotification">
@@ -378,9 +399,9 @@
 
     <div class="card">
         <div class="toggle-section" onclick="toggleSection('tax-section', this)">
-    <h2>2. Fully Editable Tax Rates (%)</h2>
-    <span class="toggle-icon">▶</span>
-</div>
+            <h2>2. Fully Editable Tax Rates (%)</h2>
+            <span class="toggle-icon">▶</span>
+        </div>
         <div class="section-content card-content scrollable-section" id="tax-section">
             <div class="input-grid">
                 <div><label>CD (%)</label><input type="number" id="rate_cd" value="15" oninput="calculate()"></div>
@@ -431,13 +452,14 @@
     </div>
 
     <div class="save-section-card">
-    <button class="save-all-button" onclick="saveAllSettingsToHsCode()">
-        <span>💾</span>
-        Save ALL Settings to Current HS Code
-    </button>
-    <div id="save-notice" class="save-notice">Settings saved successfully!</div>
+        <button class="save-all-button" onclick="saveAllSettingsToHsCode()">
+            <span>💾</span>
+            Save ALL Settings to Current HS Code
+        </button>
+        <div id="save-notice" class="save-notice">Settings saved successfully!</div>
+    </div>
 </div>
-</div>
+
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -752,6 +774,9 @@
         document.getElementById('out_landing').innerText = Math.round(landing).toLocaleString();
         document.getElementById('out_kg').innerText = "Rs. " + costPerKg.toFixed(2);
         document.getElementById('finalCostValue').textContent = "Rs. " + costPerKg.toFixed(2) + " /kg";
+
+const netCostPerKg = costPerKg - truckPerKg;
+        document.getElementById('netCostValue').textContent = "Rs. " + netCostPerKg.toFixed(2) + " /kg";
     }
 
     function showNotice(msg, bg="#dbeafe", color="#1e40af") {
@@ -773,6 +798,19 @@
         notification.style.display = 'block';
         setTimeout(() => notification.style.display = 'none', 2000);
     }
+
+// ADD THIS AFTER THE copyFinalCost() FUNCTION
+
+function copyNetCost() {
+    const val = document.getElementById('netCostValue').textContent.split(' ')[1];
+    navigator.clipboard.writeText(val);
+    
+    // Show copy notification
+    const notification = document.getElementById('copyNotification');
+    notification.textContent = "Net cost copied to clipboard! ✓";
+    notification.style.display = 'block';
+    setTimeout(() => notification.style.display = 'none', 2000);
+}
 
     function resetToDefaults() {
         if (confirm('Reset all fields to default values? This will not delete saved cloud data.')) {
