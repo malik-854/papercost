@@ -351,14 +351,13 @@
                     <label>Rate Type</label>
                     <select id="incoterm" onchange="handleIncotermChange()">
                         <option value="cnf">C&F (Cost & Freight)</option>
-                        <option value="cif" selected>CIF (Cost, Ins, Freight)</option>
                         <option value="fob">FOB (Free on Board)</option>
                     </select>
                 </div>
                 <div><label>Unit Price (USD/Ton)</label><input type="number" id="unit_price" value="750" oninput="calculate()"></div>
                 
                 <div id="box_freight" class="hidden"><label>Sea Freight (USD Total)</label><input type="number" id="freight_usd" value="1200" oninput="calculate()"></div>
-                <div id="box_insurance" class="hidden"><label>Insurance (%age)</label><input type="number" id="insurance_usd" value="0.15" oninput="calculate()"></div>
+                <div id="box_insurance" class="hidden"><label>Insurance (% of ITP)</label><input type="number" id="insurance_percent" value="0.15" step="0.01" oninput="calculate()"></div>
                 
                 <div><label>ITP Value (USD/Ton)</label><input type="number" id="itp_val" value="750" step="0.01" oninput="calculate()"></div>
                 <div><label>Ex. Rate (PKR)</label><input type="number" id="ex_rate" value="282" oninput="calculate()"></div>
@@ -421,10 +420,10 @@
             </table>
             
             <div style="margin-top:20px;">
-                <label>Port/Clearing PKR (Fixed)</label>
-                <input type="number" id="port_pkr" value="85000" oninput="calculate()">
+                <label>Port/Clearing PKR (Per KG)</label>
+                <input type="number" id="port_pkr" value="5" step="0.01" oninput="calculate()">
                 <label style="margin-top: 10px; display: block;">Trucking to Warehouse (PKR/KG)</label>
-                <input type="number" id="truck_pkr" value="12" oninput="calculate()">
+                <input type="number" id="truck_pkr" value="12" step="0.01" oninput="calculate()">
             </div>
             
             <button class="btn-small" onclick="window.print()" style="width: 100%; margin-top: 15px;">🖨️ Print Full Calculation</button>
@@ -460,12 +459,25 @@
     const hsCollection = db.collection('hs_codes');
 
     const DEFAULT_VALUES = {
-        origin: 'china', incoterm: 'cif', unit_price: 750, freight_usd: 1200, 
-        insurance_usd: 0.15, itp_val: 750, ex_rate: 282, qty: 1, 
-        port_pkr: 5, // Now this is FLAT rupees per kg to add (was per kg rate)
-        truck_pkr: 12, rate_cd: 15, rate_acd: 2, 
-        rate_rd: 10, rate_add: 0, rate_st: 18, rate_ast: 3, 
-        rate_it: 12, rate_cess: 1.85, rate_landing: 1
+        origin: 'china', 
+        incoterm: 'cnf',  // Changed from 'cif' to 'cnf'
+        unit_price: 750, 
+        freight_usd: 1200, 
+        insurance_percent: 0.15,  // Changed from insurance_usd to insurance_percent
+        itp_val: 750, 
+        ex_rate: 282, 
+        qty: 20, 
+        port_pkr: 5,  // Per KG rate (adds Rs. 5/kg to cost)
+        truck_pkr: 12, 
+        rate_cd: 15, 
+        rate_acd: 2, 
+        rate_rd: 10, 
+        rate_add: 0, 
+        rate_st: 18, 
+        rate_ast: 3, 
+        rate_it: 12, 
+        rate_cess: 1.85, 
+        rate_landing: 1
     };
 
     // --- 2. CLOUD DATA FUNCTIONS ---
@@ -523,7 +535,7 @@
             itp_val: parseFloat(document.getElementById('itp_val').value),
             ex_rate: parseFloat(document.getElementById('ex_rate').value),
             qty: parseFloat(document.getElementById('qty').value),
-            port_pkr: parseFloat(document.getElementById('port_pkr').value), // FLAT per kg addition
+            port_pkr: parseFloat(document.getElementById('port_pkr').value),
             truck_pkr: parseFloat(document.getElementById('truck_pkr').value),
             rate_cd: parseFloat(document.getElementById('rate_cd').value),
             rate_acd: parseFloat(document.getElementById('rate_acd').value),
@@ -679,21 +691,29 @@
         const exRate = parseFloat(document.getElementById('ex_rate').value) || 0;
         const itpVal = parseFloat(document.getElementById('itp_val').value) || 0;
 
-        let invUsd = unitPrice * qty;
-        let freightUsd = (term === 'fob') ? parseFloat(document.getElementById('freight_usd').value) || 0 : 0;
-        let insuranceUsd = 0;
-if (term === 'fob' || term === 'cnf') {
-    let insurancePercent = parseFloat(document.getElementById('insurance_percent').value) || 0;
-    insuranceUsd = maxValuePerTon * qty * (insurancePercent / 100);
-}
+        // Calculate max value (for assessed value)
+        let maxValuePerTon = Math.max(unitPrice, itpVal);
         
-        if (term === 'cif') {
-            insuranceUsd = Math.max(unitPrice, itpVal) * qty * 0.01;
+        // Invoice value (actual purchase)
+        let invUsd = unitPrice * qty;
+        
+        // Freight (only for FOB)
+        let freightUsd = (term === 'fob') ? parseFloat(document.getElementById('freight_usd').value) || 0 : 0;
+        
+        // Insurance (0.15% of ITP value for C&F and FOB)
+        let insuranceUsd = 0;
+        if (term === 'fob' || term === 'cnf') {
+            let insurancePercent = parseFloat(document.getElementById('insurance_percent').value) || 0;
+            insuranceUsd = itpVal * qty * (insurancePercent / 100); // Based on ITP only
         }
-
+        
+        // Actual cost in PKR (what you actually pay)
         let actualCostPkr = (invUsd + freightUsd + insuranceUsd) * exRate;
-        let assessedValuePkr = (Math.max(unitPrice, itpVal) * qty + (term === 'fob' ? freightUsd : 0) + insuranceUsd) * exRate;
+        
+        // Assessed value for customs (using max of unit price or ITP)
+        let assessedValuePkr = (maxValuePerTon * qty + (term === 'fob' ? freightUsd : 0) + insuranceUsd) * exRate;
 
+        // Calculate duties and taxes
         const cd = assessedValuePkr * (parseFloat(document.getElementById('rate_cd').value)/100);
         const acd = assessedValuePkr * (parseFloat(document.getElementById('rate_acd').value)/100);
         const rd = assessedValuePkr * (parseFloat(document.getElementById('rate_rd').value)/100);
@@ -706,19 +726,19 @@ if (term === 'fob' || term === 'cnf') {
         const cess = assessedValuePkr * (parseFloat(document.getElementById('rate_cess').value)/100);
         const landing = assessedValuePkr * (parseFloat(document.getElementById('rate_landing').value)/100);
         
-        // IMPORTANT CHANGE: Port charges are now a FLAT addition to per kg cost
+        // Port charges (Rs. 5 per kg - adds flat Rs. 5 to cost per kg)
         const portPerKg = parseFloat(document.getElementById('port_pkr').value) || 0;
-        // Trucking remains as per kg calculation
-        const truck = (qty * 1000) * (parseFloat(document.getElementById('truck_pkr').value) || 0);
-
-        // Calculate cost per kg WITHOUT port charges
-        const costBeforePort = actualCostPkr + cd + acd + rd + add + gst + ast + it + cess + landing + truck;
-        const costPerKgBeforePort = costBeforePort / (qty * 1000);
+        const portTotal = (qty * 1000) * portPerKg;
         
-        // Add FLAT port charges per kg
-        const costPerKgWithPort = costPerKgBeforePort + portPerKg;
-        const grandTotal = costPerKgWithPort * (qty * 1000);
+        // Trucking (Rs. 12 per kg)
+        const truckPerKg = parseFloat(document.getElementById('truck_pkr').value) || 0;
+        const truckTotal = (qty * 1000) * truckPerKg;
 
+        // Calculate grand total
+        const grandTotal = actualCostPkr + cd + acd + rd + add + gst + ast + it + cess + landing + portTotal + truckTotal;
+        const costPerKg = grandTotal / (qty * 1000);
+
+        // Update display
         document.getElementById('out_inv_usd').innerText = "$" + invUsd.toLocaleString();
         document.getElementById('out_ship_pkr').innerText = Math.round((freightUsd + insuranceUsd) * exRate).toLocaleString();
         document.getElementById('out_assessed').innerText = Math.round(assessedValuePkr).toLocaleString();
@@ -728,10 +748,10 @@ if (term === 'fob' || term === 'cnf') {
         document.getElementById('out_add').innerText = Math.round(add).toLocaleString();
         document.getElementById('out_st').innerText = Math.round(gst + ast).toLocaleString();
         document.getElementById('out_it').innerText = Math.round(it).toLocaleString();
-        document.getElementById('out_local').innerText = Math.round(cess).toLocaleString();
+        document.getElementById('out_local').innerText = Math.round(cess + portTotal).toLocaleString();
         document.getElementById('out_landing').innerText = Math.round(landing).toLocaleString();
-        document.getElementById('out_kg').innerText = "Rs. " + costPerKgWithPort.toFixed(2);
-        document.getElementById('finalCostValue').textContent = "Rs. " + costPerKgWithPort.toFixed(2) + " /kg";
+        document.getElementById('out_kg').innerText = "Rs. " + costPerKg.toFixed(2);
+        document.getElementById('finalCostValue').textContent = "Rs. " + costPerKg.toFixed(2) + " /kg";
     }
 
     function showNotice(msg, bg="#dbeafe", color="#1e40af") {
