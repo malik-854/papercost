@@ -462,7 +462,8 @@
     const DEFAULT_VALUES = {
         origin: 'china', incoterm: 'cif', unit_price: 750, freight_usd: 1200, 
         insurance_usd: 200, itp_val: 0.75, ex_rate: 282, qty: 20, 
-        port_pkr: 85000, truck_pkr: 12, rate_cd: 15, rate_acd: 2, 
+        port_pkr: 5, // Changed from fixed amount to per kg rate (was 85000)
+        truck_pkr: 12, rate_cd: 15, rate_acd: 2, 
         rate_rd: 10, rate_add: 0, rate_st: 18, rate_ast: 3, 
         rate_it: 12, rate_cess: 1.85, rate_landing: 1  // Landing charges added with 1% default
     };
@@ -522,7 +523,7 @@
             itp_val: parseFloat(document.getElementById('itp_val').value),
             ex_rate: parseFloat(document.getElementById('ex_rate').value),
             qty: parseFloat(document.getElementById('qty').value),
-            port_pkr: parseFloat(document.getElementById('port_pkr').value),
+            port_pkr: parseFloat(document.getElementById('port_pkr').value), // Now per kg rate
             truck_pkr: parseFloat(document.getElementById('truck_pkr').value),
             rate_cd: parseFloat(document.getElementById('rate_cd').value),
             rate_acd: parseFloat(document.getElementById('rate_acd').value),
@@ -701,7 +702,8 @@
         const cess = assessedValuePkr * (parseFloat(document.getElementById('rate_cess').value)/100);
         // Landing charges calculation added
         const landing = assessedValuePkr * (parseFloat(document.getElementById('rate_landing').value)/100);
-        const port = parseFloat(document.getElementById('port_pkr').value) || 0;
+        // Port charges now calculated per kg (5/kg default)
+        const port = (qty * 1000) * (parseFloat(document.getElementById('port_pkr').value) || 0);
         const truck = (qty * 1000) * (parseFloat(document.getElementById('truck_pkr').value) || 0);
 
         // Landing charges added to grand total
@@ -772,5 +774,4 @@
     });
 </script>
 </body>
-
 </html>
