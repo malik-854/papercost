@@ -773,10 +773,10 @@
         document.getElementById('out_local').innerText = Math.round(cess + portTotal).toLocaleString();
         document.getElementById('out_landing').innerText = Math.round(landing).toLocaleString();
         document.getElementById('out_kg').innerText = "Rs. " + costPerKg.toFixed(2);
-        document.getElementById('finalCostValue').textContent = "Rs. " + costPerKg.toFixed(2) + " /kg LHR";
+        document.getElementById('finalCostValue').textContent = "Rs. " + Math.round(costPerKg).toLocaleString() + " /kg LHR";
 
 const netCostPerKg = costPerKg - truckPerKg;
-        document.getElementById('netCostValue').textContent = "Rs. " + netCostPerKg.toFixed(2) + " /kg KHI";
+        document.getElementById('netCostValue').textContent = "Rs. " + Math.round(netCostPerKg).toLocaleString() + " /kg KHI";
     }
 
     function showNotice(msg, bg="#dbeafe", color="#1e40af") {
