@@ -741,7 +741,7 @@
         const rd = assessedValuePkr * (parseFloat(document.getElementById('rate_rd').value)/100);
         const add = assessedValuePkr * (parseFloat(document.getElementById('rate_add').value)/100);
         
-        const stBase = assessedValuePkr + cd + acd + rd + add;
+        const stBase = assessedValuePkr + cd + acd + rd;
         const gst = stBase * (parseFloat(document.getElementById('rate_st').value)/100);
         const ast = stBase * (parseFloat(document.getElementById('rate_ast').value)/100);
         const it = (stBase + gst + ast) * (parseFloat(document.getElementById('rate_it').value)/100);
@@ -840,4 +840,5 @@ function copyNetCost() {
     });
 </script>
 </body>
+
 </html>
