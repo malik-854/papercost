@@ -412,6 +412,61 @@
             }
         }
 
+        /* Brand History Table styling */
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+            margin-top: 8px;
+        }
+
+        .history-table th {
+            font-weight: 700;
+            color: var(--text-muted);
+            padding: 8px 6px;
+            border-bottom: 2px solid var(--border);
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.03em;
+        }
+
+        .history-table td {
+            padding: 8px 6px;
+            border-bottom: 1px solid var(--border);
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .history-table tr:hover td {
+            background-color: var(--bg);
+        }
+
+        .trend-indicator {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            font-weight: 800;
+            font-size: 12px;
+        }
+
+        .trend-up {
+            color: var(--rose);
+            background-color: #fee2e2;
+        }
+
+        .trend-down {
+            color: var(--emerald);
+            background-color: #dcfce7;
+        }
+
+        .trend-flat {
+            color: var(--text-muted);
+            background-color: var(--border);
+        }
+
         /* Results Table */
         .results-table {
             width: 100%;
@@ -673,6 +728,25 @@
                             <button class="btn-danger" onclick="deleteBrand()">Delete Brand</button>
                         </div>
                     </div>
+
+                    <div id="brand_history_section" class="hidden hs-manager" style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px;">
+                        <h3 style="margin-top:0; font-size: 0.85rem; color: var(--primary-muted); margin-bottom: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;">Brand Price History</h3>
+                        <div style="overflow-x: auto;">
+                            <table class="history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Final Unit Rate</th>
+                                        <th>Landed Cost</th>
+                                        <th style="text-align: center;">Trend</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="brand_history_tbody">
+                                    <!-- History rows will go here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -873,6 +947,20 @@
             
             if (brand) {
                 updateData[`origin_${origin}_brand_${brand}`] = settings;
+                
+                // Record pricing history
+                const finalUnitPrice = parseFloat(document.getElementById('final_unit_price').value) || 0;
+                const costText = document.getElementById('out_kg').textContent || "Rs. 0.00";
+                const costPerKg = parseFloat(costText.replace(/[^\d.]/g, '')) || 0;
+                const todayStr = new Date().toLocaleDateString('en-CA');
+                
+                const historyEntry = {
+                    date: todayStr,
+                    final_unit_price: finalUnitPrice,
+                    cost_per_kg: costPerKg
+                };
+                
+                updateData[`origin_${origin}_brand_${brand}_history`] = firebase.firestore.FieldValue.arrayUnion(historyEntry);
             } else {
                 updateData[`origin_${origin}`] = settings;
             }
@@ -884,11 +972,9 @@
             
             localStorage.setItem('lastHsCode', hsCode);
             localStorage.setItem(`lastOrigin_${hsCode}`, origin);
-            if (brand) {
-                localStorage.setItem(`lastBrand_${hsCode}_${origin}`, brand);
-            } else {
-                localStorage.removeItem(`lastBrand_${hsCode}_${origin}`);
-            }
+            
+            // Reload settings to refresh the history table
+            await loadHsCodeSettings();
             
         } catch (e) {
             alert("Sync Failed: " + e.message);
@@ -975,6 +1061,19 @@
             
             handleIncotermChange();
             calculate();
+
+            // Load and render brand history if a brand is selected
+            const historySection = document.getElementById('brand_history_section');
+            const historyTbody = document.getElementById('brand_history_tbody');
+            if (selectedBrand) {
+                historySection.classList.remove('hidden');
+                const historyKey = `origin_${origin}_brand_${selectedBrand}_history`;
+                const historyList = data[historyKey] || [];
+                renderBrandHistory(historyList);
+            } else {
+                historySection.classList.add('hidden');
+                if (historyTbody) historyTbody.innerHTML = '';
+            }
             
         } catch (e) {
             console.error("Load Error:", e);
@@ -998,6 +1097,12 @@
             itpValInput.disabled = true;
             itpValInput.style.backgroundColor = 'var(--border)';
         }
+
+        // Hide brand history table
+        const historySection = document.getElementById('brand_history_section');
+        if (historySection) historySection.classList.add('hidden');
+        const historyTbody = document.getElementById('brand_history_tbody');
+        if (historyTbody) historyTbody.innerHTML = '';
 
         document.getElementById('origin').value = origin;
         handleIncotermChange();
@@ -1266,6 +1371,46 @@
 
         const netCostPerKg = costPerKg - truckPerKg;
         document.getElementById('netCostValue').textContent = "Rs. " + Math.round(netCostPerKg).toLocaleString() + " /kg KHI";
+    }
+
+    function renderBrandHistory(historyList) {
+        const tbody = document.getElementById('brand_history_tbody');
+        if (!tbody) return;
+        if (!historyList || historyList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--primary-muted);">No saved history</td></tr>';
+            return;
+        }
+
+        // Sort history by date descending
+        const sorted = [...historyList].sort((a, b) => b.date.localeCompare(a.date));
+
+        let html = '';
+        for (let i = 0; i < sorted.length; i++) {
+            const current = sorted[i];
+            
+            // To compare with the last saved price chronologically,
+            // we look at the next item in the sorted descending array.
+            const prev = sorted[i + 1];
+            
+            let trendHtml = '<span class="trend-indicator trend-flat">—</span>';
+            if (prev) {
+                if (current.final_unit_price > prev.final_unit_price) {
+                    trendHtml = '<span class="trend-indicator trend-up" title="Price Increased">↑</span>';
+                } else if (current.final_unit_price < prev.final_unit_price) {
+                    trendHtml = '<span class="trend-indicator trend-down" title="Price Decreased">↓</span>';
+                }
+            }
+
+            html += `
+                <tr>
+                    <td style="font-family: monospace;">${current.date}</td>
+                    <td>$${current.final_unit_price.toFixed(2)}</td>
+                    <td>Rs. ${current.cost_per_kg.toFixed(2)}</td>
+                    <td style="text-align: center;">${trendHtml}</td>
+                </tr>
+            `;
+        }
+        tbody.innerHTML = html;
     }
 
     function showNotice(msg, bg="#dbeafe", color="#1e40af") {
