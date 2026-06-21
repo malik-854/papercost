@@ -4,334 +4,551 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ultimate Import Calculator - 2026</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f1f5f9; }
-        * { box-sizing: border-box; }
-        body { 
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
-            background: var(--bg); 
-            padding: 10px; 
-            font-size: 14px; 
-            color: #334155; 
+        :root {
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --primary: #0f172a;
+            --primary-muted: #334155;
+            --accent: #4f46e5;
+            --accent-hover: #4338ca;
+            --accent-light: rgba(79, 70, 229, 0.08);
+            --border: #e2e8f0;
+            --border-hover: #cbd5e1;
+            --border-focus: #818cf8;
+            --emerald: #10b981;
+            --emerald-hover: #059669;
+            --rose: #f43f5e;
+            --rose-hover: #e11d48;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03), 0 10px 15px -3px rgba(0, 0, 0, 0.03);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-main);
+            padding: 85px 12px 30px 12px;
+            font-size: 14px;
+            line-height: 1.5;
             -webkit-text-size-adjust: 100%;
         }
-        .container { 
-            max-width: 1100px; 
-            margin: auto; 
-            display: grid; 
-            grid-template-columns: 1fr; 
-            gap: 15px; 
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
         }
-        .card { 
-            background: white; 
-            padding: 0;
-            border-radius: 10px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
-            overflow: hidden;
-        }
-        .card-content {
-            padding: 15px;
-        }
-        h2 { 
-            margin: 0;
-            font-size: 0.95rem; 
-            color: var(--accent); 
-            text-transform: uppercase; 
-        }
-        .input-grid { 
-            display: grid; 
-            grid-template-columns: 1fr; 
-            gap: 10px; 
-            margin-bottom: 15px; 
-        }
-        @media (min-width: 768px) {
-            .container { grid-template-columns: 1fr 1fr; }
-            .input-grid { grid-template-columns: 1fr 1fr; }
-        }
-        label { 
-            display: block; 
-            font-weight: 600; 
-            margin-bottom: 3px; 
-            color: #475569; 
-            font-size: 13px;
-        }
-        input, select { 
-            width: 100%; 
-            padding: 10px; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 6px; 
-            font-size: 14px; 
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-        }
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-        .results-table { 
-            width: 100%; 
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-        .results-table td { 
-            padding: 10px 0; 
-            border-bottom: 1px solid #f1f5f9; 
-        }
-        .results-table td:last-child { 
-            text-align: right; 
-            font-weight: bold; 
-        }
-        .total-row { 
-            font-size: 1.1rem; 
-            color: #be123c; 
-            border-top: 2px solid #334155 !important; 
-        }
-        .final-cost-banner {
+
+        /* Unified Cost Widget */
+        .unified-cost-widget {
             position: fixed;
-            top: 10px;
+            top: 15px;
             left: 50%;
             transform: translateX(-50%);
-            background: linear-gradient(135deg, #059669, #10b981);
-            color: white;
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 16px;
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+            display: flex;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            padding: 4px 8px;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.05);
             z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-            border: none;
-            max-width: 90%;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .final-cost-banner:hover {
-            background: linear-gradient(135deg, #10b981, #059669);
-            box-shadow: 0 6px 16px rgba(5, 150, 105, 0.4);
-        }
-        .copy-icon {
-            font-size: 18px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 4px;
-            border-radius: 4px;
-            min-width: 30px;
-            text-align: center;
-        }
-        .cost-value {
-            flex-grow: 1;
-            text-align: center;
-        }
-        .hidden { display: none; }
-        .hs-manager { 
-            background: #f8fafc; 
-            padding: 12px; 
-            border-radius: 6px; 
-            margin-top: 15px; 
-            border: 1px solid #e2e8f0; 
-        }
-        .hs-manager input { 
-            margin-right: 0;
-            margin-bottom: 8px; 
-            width: 100%;
-        }
-        @media (min-width: 480px) {
-            .hs-manager input { 
-                width: auto;
-                margin-right: 10px;
-            }
-        }
-        .btn-small { 
-            background: var(--accent); 
-            color: white; 
-            padding: 8px 12px; 
-            border: none; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-size: 12px; 
-            display: inline-block;
-            margin-top: 5px;
-        }
-        .save-all-button {
-            background: linear-gradient(135deg, #059669, #10b981);
-            color: white;
-            padding: 14px 20px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            width: 100%;
-            margin: 20px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
+            gap: 4px;
+            max-width: 95%;
+            width: max-content;
             transition: all 0.3s ease;
         }
-        .save-all-button:hover {
-            background: linear-gradient(135deg, #10b981, #059669);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(5, 150, 105, 0.3);
+
+        .cost-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 20px;
+            cursor: pointer;
+            border-radius: 40px;
+            transition: all 0.2s ease;
+            position: relative;
         }
-        .save-notice { 
-            background: #dbeafe; 
-            padding: 8px; 
-            border-radius: 4px; 
-            font-size: 12px; 
-            color: #1e40af; 
-            margin-top: 10px; 
-            display: none; 
+
+        .cost-item:hover {
+            background: rgba(255, 255, 255, 0.08);
         }
+
+        .cost-item.lhr:hover {
+            background: rgba(16, 185, 129, 0.15);
+        }
+
+        .cost-item.khi:hover {
+            background: rgba(244, 63, 94, 0.15);
+        }
+
+        .cost-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .cost-item.lhr .cost-label {
+            color: #34d399;
+        }
+
+        .cost-item.khi .cost-label {
+            color: #fb7185;
+        }
+
+        .cost-value {
+            font-size: 15px;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .cost-divider {
+            width: 1px;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .copy-badge {
+            font-size: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            padding: 1px 6px;
+            border-radius: 10px;
+            margin-top: 3px;
+            opacity: 0;
+            transform: translateY(2px);
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .cost-item:hover .copy-badge {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Copy Toast Notification */
+        .copy-notification {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(8px);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+            z-index: 1100;
+            box-shadow: var(--shadow-lg);
+            display: none;
+            animation: toastSlideUp 0.2s ease-out;
+        }
+
+        @keyframes toastSlideUp {
+            from { transform: translate(-50%, 20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        /* Header Bar */
+        .header-bar {
+            background: var(--primary);
+            color: white;
+            padding: 24px 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-title {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
+        }
+
+        .mobile-actions {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* Layout Columns */
+        .left-column, .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding-top: 95px;
+            }
+            .container {
+                grid-template-columns: 1.2fr 1fr;
+                gap: 24px;
+                align-items: start;
+            }
+            .header-bar {
+                grid-column: 1 / -1;
+                flex-direction: row;
+                justify-content: space-between;
+                text-align: left;
+                padding: 20px 24px;
+            }
+            .header-title {
+                font-size: 1.6rem;
+            }
+            .mobile-actions {
+                width: auto;
+            }
+            .right-column {
+                position: sticky;
+                top: 95px;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
         .toggle-section {
-            background: #f1f5f9;
-            padding: 12px 15px;
-            border-radius: 0;
+            background: #f8fafc;
+            padding: 16px 20px;
             cursor: pointer;
             user-select: none;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border);
             transition: background-color 0.2s;
         }
+
         .toggle-section:hover {
-            background: #e2e8f0;
+            background: #f1f5f9;
         }
+
+        h2 {
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
         .toggle-icon {
             font-weight: bold;
-            font-size: 16px;
-            color: #475569;
-            transition: transform 0.3s ease;
+            font-size: 14px;
+            color: var(--text-muted);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
         .toggle-section.active .toggle-icon {
-            transform: rotate(180deg);
+            transform: rotate(90deg);
         }
+
+        /* Collapsible Section Layout Fixes */
         .section-content {
-            transition: all 0.3s ease;
-            max-height: 2000px;
+            transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
         }
-        .collapsed {
-            max-height: 0 !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            overflow: hidden;
+
+        .section-content.collapsed {
+            max-height: 0;
             opacity: 0;
-            border: none !important;
+            pointer-events: none;
         }
-        .header-bar {
-            background: var(--primary);
-            color: white;
-            padding: 20px 15px;
+
+        .card-content {
+            padding: 20px;
+        }
+
+        /* Grids & Forms */
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--primary-muted);
+            font-size: 13px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            background: var(--bg-main);
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text-main);
+            font-weight: 500;
+            transition: all 0.2s ease;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input:hover, select:hover {
+            border-color: var(--border-hover);
+        }
+
+        input:focus, select:focus {
+            background: #ffffff;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+            outline: none;
+        }
+
+        /* Standard Select Chevron */
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            background-size: 14px;
+            padding-right: 38px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Tax Grid Overhaul (Non-scrollable, beautiful layout) */
+        .tax-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        @media (min-width: 480px) {
+            .tax-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* HS Preset Manager */
+        .hs-manager {
+            background: var(--bg-main);
+            padding: 16px;
             border-radius: 10px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .header-title {
-            margin: 0;
-            font-size: 1.2rem;
-            line-height: 1.3;
-        }
-        .mobile-actions {
-            display: flex;
-            gap: 10px;
             margin-top: 15px;
-            flex-wrap: wrap;
+            border: 1px dashed var(--border);
+        }
+
+        .hs-manager-controls {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        @media (min-width: 480px) {
+            .hs-manager-controls {
+                grid-template-columns: 1.2fr 2fr auto auto auto;
+                align-items: end;
+            }
+            .hs-manager-controls button {
+                min-width: 80px;
+            }
+        }
+
+        /* Results Table */
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+        }
+
+        .results-table td {
+            padding: 11px 0;
+            border-bottom: 1px solid #f1f5f9;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .results-table td:last-child {
+            text-align: right;
+            font-family: 'Plus Jakarta Sans', monospace;
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .total-row {
+            font-size: 1.15rem;
+            border-top: 2px solid var(--border) !important;
+        }
+
+        .total-row td {
+            padding: 15px 0 !important;
+            color: var(--rose) !important;
+        }
+
+        .total-row td:last-child {
+            color: var(--rose) !important;
+        }
+
+        /* Buttons Styling */
+        button, input[type="button"] {
+            min-height: 42px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13.5px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
             justify-content: center;
-        }
-        .mobile-actions button {
-            flex: 1;
-            min-width: 120px;
-        }
-        /* Improve touch targets */
-        button, input[type="button"], input[type="submit"] {
-            min-height: 44px;
+            gap: 8px;
+            border: none;
             touch-action: manipulation;
         }
-        select {
-            min-height: 44px;
-        }
-        /* Scroll improvements */
-        .scrollable-section {
-            max-height: 300px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            padding-right: 5px;
-        }
-        .scrollable-section::-webkit-scrollbar {
-            width: 6px;
-        }
-        .scrollable-section::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 3px;
-        }
-        .scrollable-section::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
-        .copy-notification {
-            position: fixed;
-            top: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #059669;
+
+        .btn-small {
+            background: var(--accent);
             color: white;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-size: 14px;
-            z-index: 1001;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            display: none;
         }
+
+        .btn-small:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+        }
+
+        .btn-small:active {
+            transform: translateY(0);
+        }
+
+        .btn-danger {
+            background: var(--rose);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: var(--rose-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(244, 63, 94, 0.15);
+        }
+
+        .btn-danger:active {
+            transform: translateY(0);
+        }
+
+        /* Save All Container & Button */
         .save-section-card {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin-top: 15px;
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
             text-align: center;
+            transition: all 0.2s ease;
         }
-        .save-section-card h2 {
-            text-align: center;
-            margin-bottom: 15px;
-            color: #059669;
-            font-size: 1rem;
+
+        .save-section-card:hover {
+            box-shadow: var(--shadow-md);
         }
-        
-        /* RED BANNER STYLES - ADDED HERE */
-        .red-banner {
-            top: 70px !important;
-            background: linear-gradient(135deg, #dc2626, #ef4444) !important;
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3) !important;
+
+        .save-all-button {
+            background: linear-gradient(135deg, var(--emerald), #059669);
+            color: white;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1);
         }
-        .red-banner:hover {
-            background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-            box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4) !important;
+
+        .save-all-button:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            transform: translateY(-1.5px);
+            box-shadow: 0 8px 16px -4px rgba(16, 185, 129, 0.2);
         }
-        /* Adjust positions */
-        .final-cost-banner {
-            top: 10px;
+
+        .save-all-button:active {
+            transform: translateY(0);
         }
-        .red-banner {
-            top: 70px;
+
+        .save-notice {
+            background: var(--accent-light);
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: var(--accent);
+            margin-top: 12px;
+            display: none;
+            font-weight: 600;
+            border: 1px solid rgba(79, 70, 229, 0.15);
         }
     </style>
 </head>
 <body>
 
-<div class="final-cost-banner" onclick="copyFinalCost()" id="finalCostBanner">
-    <div class="cost-value" id="finalCostValue">Rs. 0.00 /kg LHR</div>
-</div>
-
-<div class="final-cost-banner red-banner" onclick="copyNetCost()" id="netCostBanner">
-    <div class="cost-value" id="netCostValue">Rs. 0.00 /kg KHI</div>
+<div class="unified-cost-widget" id="unifiedCostWidget">
+    <div class="cost-item lhr" onclick="copyFinalCost()" id="finalCostBanner">
+        <span class="cost-label">LHR (Landed)</span>
+        <span class="cost-value" id="finalCostValue">Rs. 0.00 /kg LHR</span>
+        <span class="copy-badge">📋 Copy</span>
+    </div>
+    <div class="cost-divider"></div>
+    <div class="cost-item khi" onclick="copyNetCost()" id="netCostBanner">
+        <span class="cost-label">KHI (Net)</span>
+        <span class="cost-value" id="netCostValue">Rs. 0.00 /kg KHI</span>
+        <span class="copy-badge">📋 Copy</span>
+    </div>
 </div>
 
 <div class="copy-notification" id="copyNotification">
@@ -343,129 +560,151 @@
         <h1 class="header-title">Pakistan Multi-Incoterm Import Calculator</h1>
         <div class="mobile-actions">
             <button class="btn-small" onclick="window.print()">🖨️ Print</button>
-            <button class="btn-small" onclick="resetToDefaults()" style="background: #dc2626;">🔄 Reset</button>
+            <button class="btn-small btn-danger" onclick="resetToDefaults()">🔄 Reset</button>
         </div>
     </div>
 
-    <div class="card">
-        <div class="toggle-section active" onclick="toggleSection('commercial-section', this)">
-            <h2>1. Commercial & Valuation</h2>
-            <span class="toggle-icon">▼</span>
-        </div>
-        <div class="section-content card-content" id="commercial-section">
-            <div class="input-grid">
-                <div style="grid-column: 1 / -1;">
-                    <label>HS Code Preset</label>
-                    <select id="hs_code" onchange="loadHsCodeSettings()">
-                        <!-- Options will be loaded from localStorage -->
-                    </select>
-                </div>
-                <div>
-                    <label>Origin of Product</label>
-                    <select id="origin" onchange="loadHsCodeSettings()">
-                        <option value="china">China</option>
-                        <option value="indonesia">Indonesia</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <div>
-                    <label>Rate Type</label>
-                    <select id="incoterm" onchange="handleIncotermChange()">
-                        <option value="cnf">C&F (Cost & Freight)</option>
-                        <option value="fob">FOB (Free on Board)</option>
-                    </select>
-                </div>
-                <div><label>Unit Price (USD/Ton)</label><input type="number" id="unit_price" value="750" oninput="calculate()"></div>
-                
-                <div id="box_freight" class="hidden"><label>Sea Freight (USD Total)</label><input type="number" id="freight_usd" value="1200" oninput="calculate()"></div>
-                <div id="box_insurance" class="hidden"><label>Insurance (% of ITP)</label><input type="number" id="insurance_percent" value="0.15" step="0.01" oninput="calculate()"></div>
-                
-                <div><label>ITP Value (USD/Ton)</label><input type="number" id="itp_val" value="750" step="0.01" oninput="calculate()"></div>
-                <div><label>Ex. Rate (PKR)</label><input type="number" id="ex_rate" value="282" oninput="calculate()"></div>
-                <div><label>Quantity (Tons)</label><input type="number" id="qty" value="20" oninput="calculate()"></div>
+    <div class="left-column">
+        <!-- Card 1: Commercial & Valuation -->
+        <div class="card">
+            <div class="toggle-section active" onclick="toggleSection('commercial-section', this)">
+                <h2>1. Commercial & Valuation</h2>
+                <span class="toggle-icon">▼</span>
             </div>
+            <div class="section-content" id="commercial-section">
+                <div class="card-content">
+                    <div class="input-grid">
+                        <div class="full-width">
+                            <label>HS Code Preset</label>
+                            <select id="hs_code" onchange="loadHsCodeSettings()">
+                                <!-- Options will be loaded from localStorage -->
+                            </select>
+                        </div>
+                        <div>
+                            <label>Origin of Product</label>
+                            <select id="origin" onchange="loadHsCodeSettings()">
+                                <option value="china">China</option>
+                                <option value="indonesia">Indonesia</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Rate Type</label>
+                            <select id="incoterm" onchange="handleIncotermChange()">
+                                <option value="cnf">C&F (Cost & Freight)</option>
+                                <option value="fob">FOB (Free on Board)</option>
+                            </select>
+                        </div>
+                        <div><label>Unit Price (USD/Ton)</label><input type="number" id="unit_price" value="750" oninput="calculate()"></div>
+                        <div><label>ITP Value (USD/Ton)</label><input type="number" id="itp_val" value="750" step="0.01" oninput="calculate()"></div>
+                        
+                        <div id="box_freight" class="hidden"><label>Sea Freight (USD Total)</label><input type="number" id="freight_usd" value="1200" oninput="calculate()"></div>
+                        <div id="box_insurance" class="hidden"><label>Insurance (% of ITP)</label><input type="number" id="insurance_percent" value="0.15" step="0.01" oninput="calculate()"></div>
+                        
+                        <div><label>Ex. Rate (PKR)</label><input type="number" id="ex_rate" value="282" oninput="calculate()"></div>
+                        <div><label>Quantity (Tons)</label><input type="number" id="qty" value="20" oninput="calculate()"></div>
+                    </div>
 
-            <div class="hs-manager">
-                <h3 style="margin-top:0; font-size: 0.9rem; color: #475569;">Add/Manage HS Codes</h3>
-                <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-                    <input type="text" id="new_hs_code" placeholder="HS Code" style="flex: 1; min-width: 120px;">
-                    <input type="text" id="new_hs_description" placeholder="Description" style="flex: 2; min-width: 150px;">
-                    <button class="btn-small" onclick="addHsCode()">➕ Add</button>
-                    <button class="btn-small" onclick="deleteCurrentHsCode()" style="background: #dc2626;">🗑️ Delete</button>
+                    <div class="hs-manager">
+                        <h3 style="margin-top:0; font-size: 0.85rem; color: var(--primary-muted); margin-bottom: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;">Add/Manage HS Codes</h3>
+                        <div class="hs-manager-controls">
+                            <div>
+                                <label style="font-size: 11px;">HS Code</label>
+                                <input type="text" id="new_hs_code" placeholder="e.g. 4802.5510">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px;">Description</label>
+                                <input type="text" id="new_hs_description" placeholder="e.g. Art Paper">
+                            </div>
+                            <button class="btn-small" onclick="addHsCode()">Add</button>
+                            <button class="btn-small" onclick="updateHsCode()">Update</button>
+                            <button class="btn-danger" onclick="deleteCurrentHsCode()">Delete</button>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Card 2: Fully Editable Tax Rates (%) -->
+        <div class="card">
+            <div class="toggle-section" onclick="toggleSection('tax-section', this)">
+                <h2>2. Fully Editable Tax Rates (%)</h2>
+                <span class="toggle-icon">▶</span>
+            </div>
+            <div class="section-content collapsed" id="tax-section" style="max-height: 0px; opacity: 0;">
+                <div class="card-content">
+                    <div class="tax-grid">
+                        <div><label>CD (%)</label><input type="number" id="rate_cd" value="15" oninput="calculate()"></div>
+                        <div><label>ACD (%)</label><input type="number" id="rate_acd" value="2" oninput="calculate()"></div>
+                        <div><label>RD (%)</label><input type="number" id="rate_rd" value="10" oninput="calculate()"></div>
+                        <div><label>Anti-Dump (%)</label><input type="number" id="rate_add" value="0" oninput="calculate()"></div>
+                        <div><label>GST (%)</label><input type="number" id="rate_st" value="18" oninput="calculate()"></div>
+                        <div><label>AST (%)</label><input type="number" id="rate_ast" value="3" oninput="calculate()"></div>
+                        <div><label>Income Tax (%)</label><input type="number" id="rate_it" value="12" oninput="calculate()"></div>
+                        <div><label>Sindh Cess (%)</label><input type="number" id="rate_cess" value="1.85" step="0.01" oninput="calculate()"></div>
+                        <div><label>Landing (%)</label><input type="number" id="rate_landing" value="1" step="0.01" oninput="calculate()"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save settings card -->
+        <div class="save-section-card">
+            <button class="save-all-button" onclick="saveAllSettingsToHsCode()">
+                <span>💾</span>
+                Save ALL Settings to Current HS Code
+            </button>
+            <div id="save-notice" class="save-notice">Settings saved successfully!</div>
         </div>
     </div>
 
-    <div class="card">
-        <div class="toggle-section" onclick="toggleSection('tax-section', this)">
-            <h2>2. Fully Editable Tax Rates (%)</h2>
-            <span class="toggle-icon">▶</span>
-        </div>
-        <div class="section-content card-content scrollable-section" id="tax-section">
-            <div class="input-grid">
-                <div><label>CD (%)</label><input type="number" id="rate_cd" value="15" oninput="calculate()"></div>
-                <div><label>ACD (%)</label><input type="number" id="rate_acd" value="2" oninput="calculate()"></div>
-                <div><label>RD (%)</label><input type="number" id="rate_rd" value="10" oninput="calculate()"></div>
-                <div><label>Anti-Dump (%)</label><input type="number" id="rate_add" value="0" oninput="calculate()"></div>
-                <div><label>GST (%)</label><input type="number" id="rate_st" value="18" oninput="calculate()"></div>
-                <div><label>AST (%)</label><input type="number" id="rate_ast" value="3" oninput="calculate()"></div>
-                <div><label>Income Tax (%)</label><input type="number" id="rate_it" value="12" oninput="calculate()"></div>
-                <div><label>Sindh Cess (%)</label><input type="number" id="rate_cess" value="1.85" step="0.01" oninput="calculate()"></div>
-                <!-- Landing Charges Field Added -->
-                <div><label>Landing Charges (%)</label><input type="number" id="rate_landing" value="1" step="0.01" oninput="calculate()"></div>
+    <div class="right-column">
+        <!-- Card 3: Landing Summary & Local Charges -->
+        <div class="card">
+            <div class="toggle-section" onclick="toggleSection('summary-section', this)">
+                <h2>3. Landing Summary & Local Charges</h2>
+                <span class="toggle-icon">▶</span>
+            </div>
+            <div class="section-content collapsed" id="summary-section" style="max-height: 0px; opacity: 0;">
+                <div class="card-content">
+                    <table class="results-table">
+                        <tr><td>Invoice Value (USD)</td><td id="out_inv_usd">0</td></tr>
+                        <tr><td>Total Shipping Cost (PKR)</td><td id="out_ship_pkr">0</td></tr>
+                        <tr><td>Assessed Value (FBR Base)</td><td id="out_assessed">0</td></tr>
+                        <tr><td>Customs Duty (CD)</td><td id="out_cd">0</td></tr>
+                        <tr><td>Add. Customs Duty (ACD)</td><td id="out_acd">0</td></tr>
+                        <tr><td>Regulatory Duty (RD)</td><td id="out_rd">0</td></tr>
+                        <tr><td>Anti-Dumping (ADD)</td><td id="out_add">0</td></tr>
+                        <tr><td>Sales Tax (GST + AST)</td><td id="out_st">0</td></tr>
+                        <tr><td>Income Tax (WHT)</td><td id="out_it">0</td></tr>
+                        <tr><td>Port/Cess/Local</td><td id="out_local">0</td></tr>
+                        <tr><td>Landing Charges (1%)</td><td id="out_landing">0</td></tr>
+                        <tr class="total-row"><td>Landed Cost / KG</td><td id="out_kg">Rs. 0.00</td></tr>
+                    </table>
+                    
+                    <div style="margin-top:20px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label>Port/Clearing (PKR/KG)</label>
+                            <input type="number" id="port_pkr" value="5" step="0.01" oninput="calculate()">
+                        </div>
+                        <div>
+                            <label>Trucking (PKR/KG)</label>
+                            <input type="number" id="truck_pkr" value="12" step="0.01" oninput="calculate()">
+                        </div>
+                    </div>
+                    
+                    <button class="btn-small" onclick="window.print()" style="width: 100%; margin-top: 20px;">🖨️ Print Full Calculation</button>
+                </div>
             </div>
         </div>
-    </div>
-
-    <div class="card">
-        <div class="toggle-section" onclick="toggleSection('summary-section', this)">
-            <h2>3. Landing Summary & Local Charges</h2>
-            <span class="toggle-icon">▼</span>
-        </div>
-        <div class="section-content card-content" id="summary-section">
-            <table class="results-table">
-                <tr><td>Invoice Value (USD)</td><td id="out_inv_usd">0</td></tr>
-                <tr><td>Total Shipping Cost (PKR)</td><td id="out_ship_pkr">0</td></tr>
-                <tr><td>Assessed Value (FBR Base)</td><td id="out_assessed">0</td></tr>
-                <tr><td>Customs Duty (CD)</td><td id="out_cd">0</td></tr>
-                <tr><td>Add. Customs Duty (ACD)</td><td id="out_acd">0</td></tr>
-                <tr><td>Regulatory Duty (RD)</td><td id="out_rd">0</td></tr>
-                <tr><td>Anti-Dumping (ADD)</td><td id="out_add">0</td></tr>
-                <tr><td>Sales Tax (GST + AST)</td><td id="out_st">0</td></tr>
-                <tr><td>Income Tax (WHT)</td><td id="out_it">0</td></tr>
-                <tr><td>Port/Cess/Local</td><td id="out_local">0</td></tr>
-                <!-- Landing Charges Row Added -->
-                <tr><td>Landing Charges (1%)</td><td id="out_landing">0</td></tr>
-                <tr class="total-row"><td>Landed Cost / KG</td><td id="out_kg">Rs. 0.00</td></tr>
-            </table>
-            
-            <div style="margin-top:20px;">
-                <label>Port/Clearing PKR (Per KG)</label>
-                <input type="number" id="port_pkr" value="5" step="0.01" oninput="calculate()">
-                <label style="margin-top: 10px; display: block;">Trucking to Warehouse (PKR/KG)</label>
-                <input type="number" id="truck_pkr" value="12" step="0.01" oninput="calculate()">
-            </div>
-            
-            <button class="btn-small" onclick="window.print()" style="width: 100%; margin-top: 15px;">🖨️ Print Full Calculation</button>
-        </div>
-    </div>
-
-    <div class="save-section-card">
-        <button class="save-all-button" onclick="saveAllSettingsToHsCode()">
-            <span>💾</span>
-            Save ALL Settings to Current HS Code
-        </button>
-        <div id="save-notice" class="save-notice">Settings saved successfully!</div>
     </div>
 </div>
-
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-    // --- 1. YOUR SPECIFIC FIREBASE CONFIGURATION ---
+    // --- 1. FIREBASE CONFIGURATION ---
     const firebaseConfig = {
         apiKey: "AIzaSyAqpYFx4SnulY3ctPPqsepymUz4qUsJUG0",
         authDomain: "import-calculator-2a301.firebaseapp.com",
@@ -482,14 +721,14 @@
 
     const DEFAULT_VALUES = {
         origin: 'china', 
-        incoterm: 'cnf',  // Changed from 'cif' to 'cnf'
+        incoterm: 'cnf',
         unit_price: 750, 
         freight_usd: 1200, 
-        insurance_percent: 0.15,  // Changed from insurance_usd to insurance_percent
+        insurance_percent: 0.15,
         itp_val: 750, 
         ex_rate: 282, 
         qty: 20, 
-        port_pkr: 5,  // Per KG rate (adds Rs. 5/kg to cost)
+        port_pkr: 5,
         truck_pkr: 12, 
         rate_cd: 15, 
         rate_acd: 2, 
@@ -572,7 +811,6 @@
         };
 
         try {
-            // Create a nested structure: hs_code -> origins -> origin_specific_data
             const originSettings = {};
             originSettings[origin] = settings;
             
@@ -585,7 +823,6 @@
             
             showNotice(`✅ Settings saved for ${hsCode} - ${origin.toUpperCase()}`, "#d1fae5", "#065f46");
             
-            // Update localStorage with the current HS Code
             localStorage.setItem('lastHsCode', hsCode);
             localStorage.setItem(`lastOrigin_${hsCode}`, origin);
             
@@ -606,21 +843,16 @@
             
             const doc = await hsCollection.doc(hsCode).get();
             if (!doc.exists) {
-                // No saved data for this HS Code, load defaults
                 resetToDefaultsForOrigin(origin);
                 return;
             }
             
             const data = doc.data();
-            
-            // Check if we have settings for this specific origin
             const originKey = `origin_${origin}`;
             
             if (data[originKey]) {
-                // Load origin-specific settings
                 const originData = data[originKey];
                 
-                // Map cloud data back to input fields
                 Object.keys(DEFAULT_VALUES).forEach(key => {
                     const el = document.getElementById(key);
                     if (el && originData[key] !== undefined) {
@@ -628,16 +860,14 @@
                     }
                 });
                 
-                // Update the origin dropdown to match loaded data
                 if (originData.origin) {
                     document.getElementById('origin').value = originData.origin;
                 }
                 
                 showNotice(`✅ Loaded ${hsCode} - ${origin.toUpperCase()} settings`, "#dbeafe", "#1e40af");
             } else {
-                // No settings for this origin, load defaults
                 resetToDefaultsForOrigin(origin);
-                showNotice(`⚠️ No saved settings for ${origin.toUpperCase()}, using defaults`, "#fef3c7", "#92400e");
+                showNotice(`⚠️ No settings for ${origin.toUpperCase()}, using defaults`, "#fef3c7", "#92400e");
             }
             
             handleIncotermChange();
@@ -650,7 +880,6 @@
     }
 
     function resetToDefaultsForOrigin(origin) {
-        // Reset to default values
         Object.keys(DEFAULT_VALUES).forEach(key => {
             const el = document.getElementById(key);
             if (el) {
@@ -658,7 +887,6 @@
             }
         });
         
-        // Set the origin
         document.getElementById('origin').value = origin;
         handleIncotermChange();
         calculate();
@@ -669,14 +897,57 @@
         if (!code || !confirm(`Delete ${code} from Cloud? This will delete ALL origin settings for this HS Code.`)) return;
         
         await hsCollection.doc(code).delete();
+        
+        // Clear fields
+        document.getElementById('new_hs_code').value = '';
+        document.getElementById('new_hs_description').value = '';
+        
         loadHsCodes();
         
-        // Clear localStorage for this HS Code
         localStorage.removeItem('lastHsCode');
         for (let key in localStorage) {
             if (key.startsWith(`lastOrigin_${code}`)) {
                 localStorage.removeItem(key);
             }
+        }
+    }
+
+    async function updateHsCode() {
+        const hsSelect = document.getElementById('hs_code');
+        const oldHsCode = hsSelect.value;
+        const newHsCode = document.getElementById('new_hs_code').value.trim();
+        const newDesc = document.getElementById('new_hs_description').value.trim();
+
+        if (!oldHsCode) return alert('Select an HS Code from the dropdown to modify first');
+        if (!newHsCode || !newDesc) return alert('Enter HS Code and Description');
+
+        try {
+            if (oldHsCode === newHsCode) {
+                await hsCollection.doc(oldHsCode).set({ description: newDesc }, { merge: true });
+                showNotice(`✅ Description updated for ${newHsCode}`, "#d1fae5", "#065f46");
+            } else {
+                if (!confirm(`Rename HS Code from "${oldHsCode}" to "${newHsCode}"? This will copy all settings and delete the old record.`)) return;
+                
+                const doc = await hsCollection.doc(oldHsCode).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    data.description = newDesc;
+                    
+                    await hsCollection.doc(newHsCode).set(data);
+                    await hsCollection.doc(oldHsCode).delete();
+                    
+                    localStorage.setItem('lastHsCode', newHsCode);
+                    const lastOrigin = localStorage.getItem(`lastOrigin_${oldHsCode}`);
+                    if (lastOrigin) {
+                        localStorage.setItem(`lastOrigin_${newHsCode}`, lastOrigin);
+                        localStorage.removeItem(`lastOrigin_${oldHsCode}`);
+                    }
+                    showNotice(`✅ Renamed to ${newHsCode}`, "#d1fae5", "#065f46");
+                }
+            }
+            loadHsCodes();
+        } catch (e) {
+            alert("Update Failed: " + e.message);
         }
     }
 
@@ -693,7 +964,14 @@
         if (isCollapsed) {
             section.style.maxHeight = section.scrollHeight + "px";
             section.style.opacity = "1";
+            setTimeout(() => {
+                if (!section.classList.contains('collapsed')) {
+                    section.style.maxHeight = 'none';
+                }
+            }, 300);
         } else {
+            section.style.maxHeight = section.scrollHeight + "px";
+            section.offsetHeight; // Force reflow
             section.style.maxHeight = "0";
             section.style.opacity = "0";
         }
@@ -713,29 +991,19 @@
         const exRate = parseFloat(document.getElementById('ex_rate').value) || 0;
         const itpVal = parseFloat(document.getElementById('itp_val').value) || 0;
 
-        // Calculate max value (for assessed value)
         let maxValuePerTon = Math.max(unitPrice, itpVal);
-        
-        // Invoice value (actual purchase)
         let invUsd = unitPrice * qty;
-        
-        // Freight (only for FOB)
         let freightUsd = (term === 'fob') ? parseFloat(document.getElementById('freight_usd').value) || 0 : 0;
         
-        // Insurance (0.15% of ITP value for C&F and FOB)
         let insuranceUsd = 0;
         if (term === 'fob' || term === 'cnf') {
             let insurancePercent = parseFloat(document.getElementById('insurance_percent').value) || 0;
-            insuranceUsd = itpVal * qty * (insurancePercent / 100); // Based on ITP only
+            insuranceUsd = itpVal * qty * (insurancePercent / 100);
         }
         
-        // Actual cost in PKR (what you actually pay)
         let actualCostPkr = (invUsd + freightUsd + insuranceUsd) * exRate;
-        
-        // Assessed value for customs (using max of unit price or ITP)
         let assessedValuePkr = (maxValuePerTon * qty + (term === 'fob' ? freightUsd : 0) + insuranceUsd) * exRate;
 
-        // Calculate duties and taxes
         const cd = assessedValuePkr * (parseFloat(document.getElementById('rate_cd').value)/100);
         const acd = assessedValuePkr * (parseFloat(document.getElementById('rate_acd').value)/100);
         const rd = assessedValuePkr * (parseFloat(document.getElementById('rate_rd').value)/100);
@@ -748,19 +1016,15 @@
         const cess = assessedValuePkr * (parseFloat(document.getElementById('rate_cess').value)/100);
         const landing = assessedValuePkr * (parseFloat(document.getElementById('rate_landing').value)/100);
         
-        // Port charges (Rs. 5 per kg - adds flat Rs. 5 to cost per kg)
         const portPerKg = parseFloat(document.getElementById('port_pkr').value) || 0;
         const portTotal = (qty * 1000) * portPerKg;
         
-        // Trucking (Rs. 12 per kg)
         const truckPerKg = parseFloat(document.getElementById('truck_pkr').value) || 0;
         const truckTotal = (qty * 1000) * truckPerKg;
 
-        // Calculate grand total
         const grandTotal = actualCostPkr + cd + acd + rd + add + gst + ast + it + cess + landing + portTotal + truckTotal;
         const costPerKg = grandTotal / (qty * 1000);
 
-        // Update display
         document.getElementById('out_inv_usd').innerText = "$" + invUsd.toLocaleString();
         document.getElementById('out_ship_pkr').innerText = Math.round((freightUsd + insuranceUsd) * exRate).toLocaleString();
         document.getElementById('out_assessed').innerText = Math.round(assessedValuePkr).toLocaleString();
@@ -773,9 +1037,10 @@
         document.getElementById('out_local').innerText = Math.round(cess + portTotal).toLocaleString();
         document.getElementById('out_landing').innerText = Math.round(landing).toLocaleString();
         document.getElementById('out_kg').innerText = "Rs. " + costPerKg.toFixed(2);
+        
         document.getElementById('finalCostValue').textContent = "Rs. " + Math.round(costPerKg).toLocaleString() + " /kg LHR";
 
-const netCostPerKg = costPerKg - truckPerKg;
+        const netCostPerKg = costPerKg - truckPerKg;
         document.getElementById('netCostValue').textContent = "Rs. " + Math.round(netCostPerKg).toLocaleString() + " /kg KHI";
     }
 
@@ -793,24 +1058,21 @@ const netCostPerKg = costPerKg - truckPerKg;
         const val = document.getElementById('finalCostValue').textContent.split(' ')[1];
         navigator.clipboard.writeText(val);
         
-        // Show copy notification
         const notification = document.getElementById('copyNotification');
+        notification.textContent = "Landed cost (LHR) copied to clipboard! ✓";
         notification.style.display = 'block';
         setTimeout(() => notification.style.display = 'none', 2000);
     }
 
-// ADD THIS AFTER THE copyFinalCost() FUNCTION
-
-function copyNetCost() {
-    const val = document.getElementById('netCostValue').textContent.split(' ')[1];
-    navigator.clipboard.writeText(val);
-    
-    // Show copy notification
-    const notification = document.getElementById('copyNotification');
-    notification.textContent = "Net cost copied to clipboard! ✓";
-    notification.style.display = 'block';
-    setTimeout(() => notification.style.display = 'none', 2000);
-}
+    function copyNetCost() {
+        const val = document.getElementById('netCostValue').textContent.split(' ')[1];
+        navigator.clipboard.writeText(val);
+        
+        const notification = document.getElementById('copyNotification');
+        notification.textContent = "Net cost (KHI) copied to clipboard! ✓";
+        notification.style.display = 'block';
+        setTimeout(() => notification.style.display = 'none', 2000);
+    }
 
     function resetToDefaults() {
         if (confirm('Reset all fields to default values? This will not delete saved cloud data.')) {
@@ -822,11 +1084,8 @@ function copyNetCost() {
 
     document.addEventListener('DOMContentLoaded', () => {
         loadHsCodes();
-        document.getElementById('summary-section').classList.add('collapsed');
-        document.getElementById('tax-section').classList.add('collapsed');
         document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', calculate));
         
-        // Load last used origin for the current HS Code if available
         const hsSelect = document.getElementById('hs_code');
         hsSelect.addEventListener('change', function() {
             const hsCode = this.value;
@@ -835,10 +1094,15 @@ function copyNetCost() {
                 if (lastOrigin) {
                     document.getElementById('origin').value = lastOrigin;
                 }
+                
+                // Populate manage inputs
+                document.getElementById('new_hs_code').value = hsCode;
+                const selectedOption = this.options[this.selectedIndex];
+                const description = selectedOption.textContent.split(' - ')[1] || '';
+                document.getElementById('new_hs_description').value = description;
             }
         });
     });
 </script>
 </body>
-
 </html>
