@@ -933,11 +933,6 @@
             let selectedBrand = "";
             if (brand && brands.includes(brand)) {
                 selectedBrand = brand;
-            } else {
-                const lastBrand = localStorage.getItem(`lastBrand_${hsCode}_${origin}`);
-                if (lastBrand && brands.includes(lastBrand)) {
-                    selectedBrand = lastBrand;
-                }
             }
             
             brandSelect.innerHTML = '<option value="">-- Default / Generic --</option>';
@@ -948,12 +943,6 @@
                 brandSelect.appendChild(option);
             });
             brandSelect.value = selectedBrand;
-            
-            if (selectedBrand) {
-                localStorage.setItem(`lastBrand_${hsCode}_${origin}`, selectedBrand);
-            } else {
-                localStorage.removeItem(`lastBrand_${hsCode}_${origin}`);
-            }
 
             // 2. Determine which settings key to load
             let originKey = `origin_${origin}`;
@@ -1083,16 +1072,51 @@
         if (!brandName) return alert('Enter a Brand Name');
 
         try {
+            // Get current active values on screen to initialize the new brand's settings
+            const settings = {
+                origin: origin,
+                incoterm: document.getElementById('incoterm').value,
+                unit_price: parseFloat(document.getElementById('unit_price').value) || 0,
+                commission: parseFloat(document.getElementById('commission').value) || 0,
+                freight_usd: parseFloat(document.getElementById('freight_usd').value) || 0,
+                insurance_percent: parseFloat(document.getElementById('insurance_percent').value) || 0,
+                itp_val: parseFloat(document.getElementById('itp_val').value) || 0,
+                qty: parseFloat(document.getElementById('qty').value) || 0,
+                port_pkr: parseFloat(document.getElementById('port_pkr').value) || 0,
+                truck_pkr: parseFloat(document.getElementById('truck_pkr').value) || 0,
+                rate_cd: parseFloat(document.getElementById('rate_cd').value) || 0,
+                rate_acd: parseFloat(document.getElementById('rate_acd').value) || 0,
+                rate_rd: parseFloat(document.getElementById('rate_rd').value) || 0,
+                rate_add: parseFloat(document.getElementById('rate_add').value) || 0,
+                rate_st: parseFloat(document.getElementById('rate_st').value) || 0,
+                rate_ast: parseFloat(document.getElementById('rate_ast').value) || 0,
+                rate_it: parseFloat(document.getElementById('rate_it').value) || 0,
+                rate_cess: parseFloat(document.getElementById('rate_cess').value) || 0,
+                rate_landing: parseFloat(document.getElementById('rate_landing').value) || 0,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
             const brandKeyList = `origin_${origin}_brands`;
+            const brandSettingsKey = `origin_${origin}_brand_${brandName}`;
+
             await hsCollection.doc(hsCode).set({
-                [brandKeyList]: firebase.firestore.FieldValue.arrayUnion(brandName)
+                [brandKeyList]: firebase.firestore.FieldValue.arrayUnion(brandName),
+                [brandSettingsKey]: settings
             }, { merge: true });
             
             document.getElementById('new_brand_name').value = '';
-            localStorage.setItem(`lastBrand_${hsCode}_${origin}`, brandName);
+            
+            // Set the brand dropdown value directly to select the new brand upon reload
+            const brandSelect = document.getElementById('brand');
+            brandSelect.innerHTML = '<option value="">-- Default / Generic --</option>';
+            const opt = document.createElement('option');
+            opt.value = brandName;
+            opt.textContent = brandName;
+            brandSelect.appendChild(opt);
+            brandSelect.value = brandName;
             
             await loadHsCodeSettings();
-            showNotice(`✅ Brand "${brandName}" added!`, "#d1fae5", "#065f46");
+            showNotice(`✅ Brand "${brandName}" added with current values!`, "#d1fae5", "#065f46");
         } catch (e) {
             alert("Failed to add brand: " + e.message);
         }
@@ -1120,7 +1144,6 @@
                 [brandSettingsKey]: firebase.firestore.FieldValue.delete()
             });
             
-            localStorage.removeItem(`lastBrand_${hsCode}_${origin}`);
             brandSelect.value = "";
             
             await loadHsCodeSettings();
