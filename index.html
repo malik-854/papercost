@@ -618,7 +618,25 @@
                             </select>
                         </div>
                         <div><label>Unit Price (USD/Ton)</label><input type="number" id="unit_price" value="750" oninput="calculate()"></div>
-                        <div><label>ITP Value (USD/Ton)</label><input type="number" id="itp_val" value="750" step="0.01" oninput="calculate()"></div>
+                        <div><label>Commission (USD/Ton)</label><input type="number" id="commission" value="20" oninput="calculate()"></div>
+                        <div class="full-width">
+                            <label>Final Unit Price (USD/Ton) <span style="font-size: 10px; color: var(--primary-muted); font-weight: normal;">(Unit Price + Commission)</span></label>
+                            <input type="number" id="final_unit_price" value="770" readonly style="background-color: var(--border); cursor: not-allowed; opacity: 0.85; font-weight: 600;">
+                        </div>
+
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <label style="margin-bottom: 0;">ITP Value (USD/Ton)</label>
+                                <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--primary-muted); cursor: pointer; user-select: none;">
+                                    <input type="checkbox" id="edit_itp" onchange="toggleItpEditing()" style="width: auto; height: auto; cursor: pointer; margin: 0;"> Edit
+                                </label>
+                            </div>
+                            <input type="number" id="itp_val" value="750" step="0.01" disabled style="background-color: var(--border); opacity: 0.85;" oninput="calculate()">
+                        </div>
+                        <div>
+                            <label>Effective ITP Value (USD/Ton)</label>
+                            <input type="number" id="effective_itp" value="750" readonly style="background-color: var(--border); cursor: not-allowed; opacity: 0.85; font-weight: 600;">
+                        </div>
                         
                         <div id="box_freight" class="hidden"><label>Sea Freight (USD Total)</label><input type="number" id="freight_usd" value="1200" oninput="calculate()"></div>
                         <div id="box_insurance" class="hidden"><label>Insurance (% of ITP)</label><input type="number" id="insurance_percent" value="0.15" step="0.01" oninput="calculate()"></div>
@@ -757,6 +775,7 @@
         origin: 'china', 
         incoterm: 'cnf',
         unit_price: 750, 
+        commission: 20,
         freight_usd: 1200, 
         insurance_percent: 0.15,
         itp_val: 750, 
@@ -826,6 +845,7 @@
             origin: origin,
             incoterm: document.getElementById('incoterm').value,
             unit_price: parseFloat(document.getElementById('unit_price').value),
+            commission: parseFloat(document.getElementById('commission').value),
             freight_usd: parseFloat(document.getElementById('freight_usd').value),
             insurance_percent: parseFloat(document.getElementById('insurance_percent').value),
             itp_val: parseFloat(document.getElementById('itp_val').value),
@@ -886,6 +906,15 @@
         try {
             localStorage.setItem('lastHsCode', hsCode);
             localStorage.setItem(`lastOrigin_${hsCode}`, origin);
+            
+            // Reset Edit ITP checkbox and disabled state
+            const editItpCheckbox = document.getElementById('edit_itp');
+            if (editItpCheckbox) editItpCheckbox.checked = false;
+            const itpValInput = document.getElementById('itp_val');
+            if (itpValInput) {
+                itpValInput.disabled = true;
+                itpValInput.style.backgroundColor = 'var(--border)';
+            }
             
             const doc = await hsCollection.doc(hsCode).get();
             if (!doc.exists) {
@@ -972,6 +1001,15 @@
             }
         });
         
+        // Reset Edit ITP checkbox and disabled state
+        const editItpCheckbox = document.getElementById('edit_itp');
+        if (editItpCheckbox) editItpCheckbox.checked = false;
+        const itpValInput = document.getElementById('itp_val');
+        if (itpValInput) {
+            itpValInput.disabled = true;
+            itpValInput.style.backgroundColor = 'var(--border)';
+        }
+
         document.getElementById('origin').value = origin;
         handleIncotermChange();
         calculate();
@@ -1118,6 +1156,19 @@
         }
     }
 
+    function toggleItpEditing() {
+        const checkbox = document.getElementById('edit_itp');
+        const itpVal = document.getElementById('itp_val');
+        if (checkbox && itpVal) {
+            itpVal.disabled = !checkbox.checked;
+            if (itpVal.disabled) {
+                itpVal.style.backgroundColor = 'var(--border)';
+            } else {
+                itpVal.style.backgroundColor = '';
+            }
+        }
+    }
+
     function handleIncotermChange() {
         const term = document.getElementById('incoterm').value;
         document.getElementById('box_freight').className = (term === 'fob') ? '' : 'hidden';
@@ -1128,22 +1179,31 @@
     function calculate() {
         const term = document.getElementById('incoterm').value;
         const unitPrice = parseFloat(document.getElementById('unit_price').value) || 0;
+        const commission = parseFloat(document.getElementById('commission').value) || 0;
         const qty = parseFloat(document.getElementById('qty').value) || 0;
         const exRate = parseFloat(document.getElementById('ex_rate').value) || 0;
         const itpVal = parseFloat(document.getElementById('itp_val').value) || 0;
 
-        let maxValuePerTon = Math.max(unitPrice, itpVal);
-        let invUsd = unitPrice * qty;
+        // 1. Calculate Final Unit Price
+        const finalUnitPrice = unitPrice + commission;
+        document.getElementById('final_unit_price').value = finalUnitPrice;
+
+        // 2. Calculate Effective ITP
+        const effectiveItp = Math.max(unitPrice, itpVal);
+        document.getElementById('effective_itp').value = effectiveItp;
+
+        // 3. Invoice Value based on Final Unit Price
+        let invUsd = finalUnitPrice * qty;
         let freightUsd = (term === 'fob') ? parseFloat(document.getElementById('freight_usd').value) || 0 : 0;
         
         let insuranceUsd = 0;
         if (term === 'fob' || term === 'cnf') {
             let insurancePercent = parseFloat(document.getElementById('insurance_percent').value) || 0;
-            insuranceUsd = itpVal * qty * (insurancePercent / 100);
+            insuranceUsd = effectiveItp * qty * (insurancePercent / 100);
         }
         
         let actualCostPkr = (invUsd + freightUsd + insuranceUsd) * exRate;
-        let assessedValuePkr = (maxValuePerTon * qty + (term === 'fob' ? freightUsd : 0) + insuranceUsd) * exRate;
+        let assessedValuePkr = (effectiveItp * qty + (term === 'fob' ? freightUsd : 0) + insuranceUsd) * exRate;
 
         const cd = assessedValuePkr * (parseFloat(document.getElementById('rate_cd').value)/100);
         const acd = assessedValuePkr * (parseFloat(document.getElementById('rate_acd').value)/100);
