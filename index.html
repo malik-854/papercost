@@ -957,8 +957,7 @@
                 
                 // Record pricing history
                 const finalUnitPrice = parseFloat(document.getElementById('final_unit_price').value) || 0;
-                const costText = document.getElementById('out_kg').textContent || "Rs. 0.00";
-                const costPerKg = parseFloat(costText.replace(/[^\d.]/g, '')) || 0;
+                const costPerKg = window.currentLandedCostPerKg || 0;
                 const todayStr = new Date().toLocaleDateString('en-CA');
                 
                 const historyEntry = {
@@ -1360,6 +1359,7 @@
 
         const grandTotal = actualCostPkr + cd + acd + rd + add + gst + ast + it + cess + landing + portTotal + truckTotal;
         const costPerKg = grandTotal / (qty * 1000);
+        window.currentLandedCostPerKg = costPerKg;
 
         document.getElementById('out_inv_usd').innerText = "$" + invUsd.toLocaleString();
         document.getElementById('out_ship_pkr').innerText = Math.round((freightUsd + insuranceUsd) * exRate).toLocaleString();
