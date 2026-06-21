@@ -794,7 +794,6 @@
             freight_usd: parseFloat(document.getElementById('freight_usd').value),
             insurance_percent: parseFloat(document.getElementById('insurance_percent').value),
             itp_val: parseFloat(document.getElementById('itp_val').value),
-            ex_rate: parseFloat(document.getElementById('ex_rate').value),
             qty: parseFloat(document.getElementById('qty').value),
             port_pkr: parseFloat(document.getElementById('port_pkr').value),
             truck_pkr: parseFloat(document.getElementById('truck_pkr').value),
@@ -854,6 +853,7 @@
                 const originData = data[originKey];
                 
                 Object.keys(DEFAULT_VALUES).forEach(key => {
+                    if (key === 'ex_rate') return;
                     const el = document.getElementById(key);
                     if (el && originData[key] !== undefined) {
                         el.value = originData[key];
@@ -1085,14 +1085,14 @@
                 DEFAULT_VALUES.ex_rate = roundedRate;
                 
                 const exInput = document.getElementById('ex_rate');
-                if (exInput && (exInput.value === "282" || exInput.value === "")) {
+                if (exInput) {
                     exInput.value = roundedRate;
                     calculate();
                 }
                 
                 const label = document.getElementById('ex_rate_label');
                 if (label) {
-                    label.innerHTML = 'Ex. Rate (PKR) <span style="color: var(--emerald); font-size: 10px; font-weight: 800; margin-left: 4px;">● LIVE</span>';
+                    label.innerHTML = `Ex. Rate (PKR) <span style="color: var(--emerald); font-size: 10px; font-weight: 800; margin-left: 4px;">● LIVE: ${roundedRate}</span>`;
                 }
             }
         } catch (e) {
