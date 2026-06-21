@@ -396,6 +396,22 @@
             }
         }
 
+        .brand-manager-controls {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        @media (min-width: 480px) {
+            .brand-manager-controls {
+                grid-template-columns: 2fr auto auto;
+                align-items: end;
+            }
+            .brand-manager-controls button {
+                min-width: 100px;
+            }
+        }
+
         /* Results Table */
         .results-table {
             width: 100%;
@@ -589,6 +605,12 @@
                             </select>
                         </div>
                         <div>
+                            <label>Brand</label>
+                            <select id="brand" onchange="loadHsCodeSettings()">
+                                <option value="">-- Default / Generic --</option>
+                            </select>
+                        </div>
+                        <div>
                             <label>Rate Type</label>
                             <select id="incoterm" onchange="handleIncotermChange()">
                                 <option value="cnf">C&F (Cost & Freight)</option>
@@ -619,6 +641,18 @@
                             <button class="btn-small" onclick="addHsCode()">Add</button>
                             <button class="btn-small" onclick="updateHsCode()">Update</button>
                             <button class="btn-danger" onclick="deleteCurrentHsCode()">Delete</button>
+                        </div>
+                    </div>
+
+                    <div class="hs-manager" style="margin-top: 12px;">
+                        <h3 style="margin-top:0; font-size: 0.85rem; color: var(--primary-muted); margin-bottom: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;">Add/Manage Brands</h3>
+                        <div class="brand-manager-controls">
+                            <div>
+                                <label style="font-size: 11px;">Brand Name</label>
+                                <input type="text" id="new_brand_name" placeholder="e.g. Appolo">
+                            </div>
+                            <button class="btn-small" onclick="addBrand()">Add Brand</button>
+                            <button class="btn-danger" onclick="deleteBrand()">Delete Brand</button>
                         </div>
                     </div>
                 </div>
@@ -784,6 +818,7 @@
     async function saveAllSettingsToHsCode() {
         const hsCode = document.getElementById('hs_code').value;
         const origin = document.getElementById('origin').value;
+        const brand = document.getElementById('brand').value;
         
         if (!hsCode) return alert('Select an HS Code first');
 
@@ -810,20 +845,30 @@
         };
 
         try {
-            const originSettings = {};
-            originSettings[origin] = settings;
-            
-            await hsCollection.doc(hsCode).set({
+            let updateData = {
                 description: document.querySelector(`#hs_code option[value="${hsCode}"]`)?.textContent?.split(' - ')[1] || '',
                 origins: firebase.firestore.FieldValue.arrayUnion(origin),
-                [`origin_${origin}`]: settings,
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
+            };
             
-            showNotice(`✅ Settings saved for ${hsCode} - ${origin.toUpperCase()}`, "#d1fae5", "#065f46");
+            if (brand) {
+                updateData[`origin_${origin}_brand_${brand}`] = settings;
+            } else {
+                updateData[`origin_${origin}`] = settings;
+            }
+            
+            await hsCollection.doc(hsCode).set(updateData, { merge: true });
+            
+            const labelName = brand ? `${brand} (${origin.toUpperCase()})` : origin.toUpperCase();
+            showNotice(`✅ Settings saved for ${hsCode} - ${labelName}`, "#d1fae5", "#065f46");
             
             localStorage.setItem('lastHsCode', hsCode);
             localStorage.setItem(`lastOrigin_${hsCode}`, origin);
+            if (brand) {
+                localStorage.setItem(`lastBrand_${hsCode}_${origin}`, brand);
+            } else {
+                localStorage.removeItem(`lastBrand_${hsCode}_${origin}`);
+            }
             
         } catch (e) {
             alert("Sync Failed: " + e.message);
@@ -833,6 +878,8 @@
     async function loadHsCodeSettings() {
         const hsCode = document.getElementById('hs_code').value;
         const origin = document.getElementById('origin').value;
+        const brandSelect = document.getElementById('brand');
+        const brand = brandSelect.value;
         
         if (!hsCode) return;
         
@@ -843,11 +890,47 @@
             const doc = await hsCollection.doc(hsCode).get();
             if (!doc.exists) {
                 resetToDefaultsForOrigin(origin);
+                brandSelect.innerHTML = '<option value="">-- Default / Generic --</option>';
                 return;
             }
             
             const data = doc.data();
-            const originKey = `origin_${origin}`;
+            
+            // 1. Populate the Brand dropdown list for this specific origin
+            const brandKeyList = `origin_${origin}_brands`;
+            const brands = data[brandKeyList] || [];
+            
+            // Keep the selected brand if it still exists in the new origin's brand list
+            let selectedBrand = "";
+            if (brand && brands.includes(brand)) {
+                selectedBrand = brand;
+            } else {
+                const lastBrand = localStorage.getItem(`lastBrand_${hsCode}_${origin}`);
+                if (lastBrand && brands.includes(lastBrand)) {
+                    selectedBrand = lastBrand;
+                }
+            }
+            
+            brandSelect.innerHTML = '<option value="">-- Default / Generic --</option>';
+            brands.forEach(b => {
+                const option = document.createElement('option');
+                option.value = b;
+                option.textContent = b;
+                brandSelect.appendChild(option);
+            });
+            brandSelect.value = selectedBrand;
+            
+            if (selectedBrand) {
+                localStorage.setItem(`lastBrand_${hsCode}_${origin}`, selectedBrand);
+            } else {
+                localStorage.removeItem(`lastBrand_${hsCode}_${origin}`);
+            }
+
+            // 2. Determine which settings key to load
+            let originKey = `origin_${origin}`;
+            if (selectedBrand) {
+                originKey = `origin_${origin}_brand_${selectedBrand}`;
+            }
             
             if (data[originKey]) {
                 const originData = data[originKey];
@@ -864,10 +947,12 @@
                     document.getElementById('origin').value = originData.origin;
                 }
                 
-                showNotice(`✅ Loaded ${hsCode} - ${origin.toUpperCase()} settings`, "#dbeafe", "#1e40af");
+                const labelName = selectedBrand ? `${selectedBrand} (${origin.toUpperCase()})` : origin.toUpperCase();
+                showNotice(`✅ Loaded ${hsCode} - ${labelName} settings`, "#dbeafe", "#1e40af");
             } else {
                 resetToDefaultsForOrigin(origin);
-                showNotice(`⚠️ No settings for ${origin.toUpperCase()}, using defaults`, "#fef3c7", "#92400e");
+                const labelName = selectedBrand ? `${selectedBrand} (${origin.toUpperCase()})` : origin.toUpperCase();
+                showNotice(`⚠️ No settings for ${labelName}, using defaults`, "#fef3c7", "#92400e");
             }
             
             handleIncotermChange();
@@ -948,6 +1033,62 @@
             loadHsCodes();
         } catch (e) {
             alert("Update Failed: " + e.message);
+        }
+    }
+
+    async function addBrand() {
+        const hsCode = document.getElementById('hs_code').value;
+        const origin = document.getElementById('origin').value;
+        const brandName = document.getElementById('new_brand_name').value.trim();
+        
+        if (!hsCode) return alert('Please select an HS Code Preset first.');
+        if (!brandName) return alert('Enter a Brand Name');
+
+        try {
+            const brandKeyList = `origin_${origin}_brands`;
+            await hsCollection.doc(hsCode).set({
+                [brandKeyList]: firebase.firestore.FieldValue.arrayUnion(brandName)
+            }, { merge: true });
+            
+            document.getElementById('new_brand_name').value = '';
+            localStorage.setItem(`lastBrand_${hsCode}_${origin}`, brandName);
+            
+            await loadHsCodeSettings();
+            showNotice(`✅ Brand "${brandName}" added!`, "#d1fae5", "#065f46");
+        } catch (e) {
+            alert("Failed to add brand: " + e.message);
+        }
+    }
+
+    async function deleteBrand() {
+        const hsCode = document.getElementById('hs_code').value;
+        const origin = document.getElementById('origin').value;
+        const brandSelect = document.getElementById('brand');
+        const brandName = brandSelect.value;
+        
+        if (!hsCode) return alert('Please select an HS Code Preset first.');
+        if (!brandName) return alert('Please select a Brand to delete from the dropdown.');
+
+        if (!confirm(`Delete Brand "${brandName}"? This will delete the brand option but keep any settings associated with it in the background.`)) return;
+
+        try {
+            const brandKeyList = `origin_${origin}_brands`;
+            await hsCollection.doc(hsCode).update({
+                [brandKeyList]: firebase.firestore.FieldValue.arrayRemove(brandName)
+            });
+            
+            const brandSettingsKey = `origin_${origin}_brand_${brandName}`;
+            await hsCollection.doc(hsCode).update({
+                [brandSettingsKey]: firebase.firestore.FieldValue.delete()
+            });
+            
+            localStorage.removeItem(`lastBrand_${hsCode}_${origin}`);
+            brandSelect.value = "";
+            
+            await loadHsCodeSettings();
+            showNotice(`🗑️ Brand "${brandName}" deleted!`);
+        } catch (e) {
+            alert("Failed to delete brand: " + e.message);
         }
     }
 
